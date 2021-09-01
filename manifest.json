@@ -1,0 +1,15 @@
+{
+    "name": "IP Scavenger Hunt",
+    "description": "Get a taste of the interconnected web! Try to connect to servers from all around the globe!",
+    "version": "1.0.0",
+    "manifest_version": 3,
+    "background": {
+        "service_worker": "background.js"
+    },
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "permissions": [
+        "webRequest"
+    ]
+}

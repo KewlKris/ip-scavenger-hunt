@@ -1,0 +1,39 @@
+{
+  "name": "ip-scavenger-hunt",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "zip": "node databasezipper.js",
+    "build": "npm run zip && webpack --mode=development",
+    "build-nozip": "webpack --mode=development",
+    "release": "npm run zip && webpack --mode=production",
+    "release-nozip": "webpack --mode=production"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KewlKris/ip-scavenger-hunt.git"
+  },
+  "keywords": [],
+  "author": "Christopher Chamberlain",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/KewlKris/ip-scavenger-hunt/issues"
+  },
+  "homepage": "https://github.com/KewlKris/ip-scavenger-hunt#readme",
+  "devDependencies": {
+    "@babel/core": "^7.15.0",
+    "@babel/plugin-transform-runtime": "^7.15.0",
+    "@babel/preset-env": "^7.15.0",
+    "babel-loader": "^8.2.2",
+    "babel-preset-minify": "^0.5.1",
+    "copy-webpack-plugin": "^9.0.1",
+    "webpack": "^5.51.1",
+    "webpack-cli": "^4.8.0"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.15.3",
+    "@babel/runtime-corejs3": "^7.15.3",
+    "jszip": "^3.7.1"
+  }
+}
