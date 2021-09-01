@@ -11,7 +11,6 @@ class IP2Location {
     #database;
 
     #version = '8.5.0';
-    #binfile = '';
     #IPv4ColumnSize = 0;
     #IPv6ColumnSize = 0;
     #low = 0;
@@ -290,8 +289,113 @@ class IP2Location {
         return total;
     }
 
-    constructor(binpath) {
-        this.#binfile = binpath;
+    /**
+     * Instantiate a new Ip2Location object for performing IP queries
+     * @param {ArrayBuffer} database - An ArrayBuffer containing the database
+     */
+    constructor(database) {
+        this.#database = database;
+
+        this.#mydb._DBType = this.#read8(1);
+        this.#mydb._DBColumn = this.#read8(2);
+        this.#mydb._DBYear = this.#read8(3);
+        this.#mydb._DBMonth = this.#read8(4);
+        this.#mydb._DBDay = this.#read8(5);
+        this.#mydb._DBCount = this.#read32(6);
+        this.#mydb._BaseAddr = this.#read32(10);
+        this.#mydb._DBCountIPv6 = this.#read32(14);
+        this.#mydb._BaseAddrIPv6 = this.#read32(18);
+        this.#mydb._IndexBaseAddr = this.#read32(22);
+        this.#mydb._IndexBaseAddrIPv6 = this.#read32(26);
+        this.#mydb._ProductCode = this.#read8(30);
+        // below 2 fields just read for now, not being used yet
+        this.#mydb._ProductType = this.#read8(31);
+        this.#mydb._FileSize = this.#read32(32);
+        
+        // check if is correct BIN (should be 1 for IP2Location BIN file), also checking for zipped file (PK being the first 2 chars)
+        if ((this.#mydb._ProductCode != 1 && this.#mydb._DBYear >= 21) || (this.#mydb._DBType == 80 && this.#mydb._DBColumn == 75)) { // only BINs from Jan 2021 onwards have this byte set
+            throw new Error('Incorrect IP2Location BIN file format. Please make sure that you are using the latest IP2Location BIN file.');
+        }
+        
+        if (this.#mydb._IndexBaseAddr > 0) {
+            this.#mydb._Indexed = 1;
+        }
+        
+        if (this.#mydb._DBCountIPv6 == 0) {
+            this.#mydb._OldBIN = 1;
+        }
+        else if (this.#mydb._IndexBaseAddrIPv6 > 0) {
+            this.#mydb._IndexedIPv6 = 1;
+        }
+        
+        this.#IPv4ColumnSize = this.#mydb._DBColumn << 2; // 4 bytes each column
+        this.#IPv6ColumnSize = 16 + ((this.#mydb._DBColumn - 1) << 2); // 4 bytes each column, except IPFrom column which is 16 bytes
+        
+        let dbt = this.#mydb._DBType;
+        
+        this.#country_pos_offset = (this.#country_pos[dbt] != 0) ? (this.#country_pos[dbt] - 2) << 2 : 0;
+        this.#region_pos_offset = (this.#region_pos[dbt] != 0) ? (this.#region_pos[dbt] - 2) << 2 : 0;
+        this.#city_pos_offset = (this.#city_pos[dbt] != 0) ? (this.#city_pos[dbt] - 2) << 2 : 0;
+        this.#isp_pos_offset = (this.#isp_pos[dbt] != 0) ? (this.#isp_pos[dbt] - 2) << 2 : 0;
+        this.#domain_pos_offset = (this.#domain_pos[dbt] != 0) ? (this.#domain_pos[dbt] - 2) << 2 : 0;
+        this.#zipcode_pos_offset = (this.#zipcode_pos[dbt] != 0) ? (this.#zipcode_pos[dbt] - 2) << 2 : 0;
+        this.#latitude_pos_offset = (this.#latitude_pos[dbt] != 0) ? (this.#latitude_pos[dbt] - 2) << 2 : 0;
+        this.#longitude_pos_offset = (this.#longitude_pos[dbt] != 0) ? (this.#longitude_pos[dbt] - 2) << 2 : 0;
+        this.#timezone_pos_offset = (this.#timezone_pos[dbt] != 0) ? (this.#timezone_pos[dbt] - 2) << 2 : 0;
+        this.#netspeed_pos_offset = (this.#netspeed_pos[dbt] != 0) ? (this.#netspeed_pos[dbt] - 2) << 2 : 0;
+        this.#iddcode_pos_offset = (this.#iddcode_pos[dbt] != 0) ? (this.#iddcode_pos[dbt] - 2) << 2 : 0;
+        this.#areacode_pos_offset = (this.#areacode_pos[dbt] != 0) ? (this.#areacode_pos[dbt] - 2) << 2 : 0;
+        this.#weatherstationcode_pos_offset = (this.#weatherstationcode_pos[dbt] != 0) ? (this.#weatherstationcode_pos[dbt] - 2) << 2 : 0;
+        this.#weatherstationname_pos_offset = (this.#weatherstationname_pos[dbt] != 0) ? (this.#weatherstationname_pos[dbt] - 2) << 2 : 0;
+        this.#mcc_pos_offset = (this.#mcc_pos[dbt] != 0) ? (this.#mcc_pos[dbt] - 2) << 2 : 0;
+        this.#mnc_pos_offset = (this.#mnc_pos[dbt] != 0) ? (this.#mnc_pos[dbt] - 2) << 2 : 0;
+        this.#mobilebrand_pos_offset = (this.#mobilebrand_pos[dbt] != 0) ? (this.#mobilebrand_pos[dbt] - 2) << 2 : 0;
+        this.#elevation_pos_offset = (this.#elevation_pos[dbt] != 0) ? (this.#elevation_pos[dbt] - 2) << 2 : 0;
+        this.#usagetype_pos_offset = (this.#usagetype_pos[dbt] != 0) ? (this.#usagetype_pos[dbt] - 2) << 2 : 0;
+        this.#addresstype_pos_offset = (this.#addresstype_pos[dbt] != 0) ? (this.#addresstype_pos[dbt] - 2) << 2 : 0;
+        this.#category_pos_offset = (this.#category_pos[dbt] != 0) ? (this.#category_pos[dbt] - 2) << 2 : 0;
+        
+        this.#country_enabled = (this.#country_pos[dbt] != 0) ? 1 : 0;
+        this.#region_enabled = (this.#region_pos[dbt] != 0) ? 1 : 0;
+        this.#city_enabled = (this.#city_pos[dbt] != 0) ? 1 : 0;
+        this.#isp_enabled = (this.#isp_pos[dbt] != 0) ? 1 : 0;
+        this.#latitude_enabled = (this.#latitude_pos[dbt] != 0) ? 1 : 0;
+        this.#longitude_enabled = (this.#longitude_pos[dbt] != 0) ? 1 : 0;
+        this.#domain_enabled = (this.#domain_pos[dbt] != 0) ? 1 : 0;
+        this.#zipcode_enabled = (this.#zipcode_pos[dbt] != 0) ? 1 : 0;
+        this.#timezone_enabled = (this.#timezone_pos[dbt] != 0) ? 1 : 0;
+        this.#netspeed_enabled = (this.#netspeed_pos[dbt] != 0) ? 1 : 0;
+        this.#iddcode_enabled = (this.#iddcode_pos[dbt] != 0) ? 1 : 0;
+        this.#areacode_enabled = (this.#areacode_pos[dbt] != 0) ? 1 : 0;
+        this.#weatherstationcode_enabled = (this.#weatherstationcode_pos[dbt] != 0) ? 1 : 0;
+        this.#weatherstationname_enabled = (this.#weatherstationname_pos[dbt] != 0) ? 1 : 0;
+        this.#mcc_enabled = (this.#mcc_pos[dbt] != 0) ? 1 : 0;
+        this.#mnc_enabled = (this.#mnc_pos[dbt] != 0) ? 1 : 0;
+        this.#mobilebrand_enabled = (this.#mobilebrand_pos[dbt] != 0) ? 1 : 0;
+        this.#elevation_enabled = (this.#elevation_pos[dbt] != 0) ? 1 : 0;
+        this.#usagetype_enabled = (this.#usagetype_pos[dbt] != 0) ? 1 : 0;
+        this.#addresstype_enabled = (this.#addresstype_pos[dbt] != 0) ? 1 : 0;
+        this.#category_enabled = (this.#category_pos[dbt] != 0) ? 1 : 0;
+        
+        if (this.#mydb._Indexed == 1) {
+            let pointer = this.#mydb._IndexBaseAddr;
+            
+            for (let x = 0; x < this.#maxindex; x++) {
+                this.#IndexArrayIPv4[x] = Array(2);
+                this.#IndexArrayIPv4[x][0] = this.#read32(pointer);
+                this.#IndexArrayIPv4[x][1] = this.#read32(pointer + 4);
+                pointer += 8;
+            }
+            
+            if (this.#mydb._IndexedIPv6 == 1) {
+                for (let x = 0; x < this.#maxindex; x++) {
+                    this.#IndexArrayIPv6[x] = Array(2);
+                    this.#IndexArrayIPv6[x][0] = this.#read32(pointer);
+                    this.#IndexArrayIPv6[x][1] = this.#read32(pointer + 4);
+                    pointer += 8;
+                }
+            }
+        }
     }
 
     /**
@@ -299,117 +403,11 @@ class IP2Location {
      * @async
      */
     async load() {
-        if (this.#binfile && (this.#binfile != '')) {
-            let response = await fetch(this.#binfile);
-            this.#database = await response.arrayBuffer();
-            
-            this.#mydb._DBType = this.#read8(1);
-            this.#mydb._DBColumn = this.#read8(2);
-            this.#mydb._DBYear = this.#read8(3);
-            this.#mydb._DBMonth = this.#read8(4);
-            this.#mydb._DBDay = this.#read8(5);
-            this.#mydb._DBCount = this.#read32(6);
-            this.#mydb._BaseAddr = this.#read32(10);
-            this.#mydb._DBCountIPv6 = this.#read32(14);
-            this.#mydb._BaseAddrIPv6 = this.#read32(18);
-            this.#mydb._IndexBaseAddr = this.#read32(22);
-            this.#mydb._IndexBaseAddrIPv6 = this.#read32(26);
-            this.#mydb._ProductCode = this.#read8(30);
-            // below 2 fields just read for now, not being used yet
-            this.#mydb._ProductType = this.#read8(31);
-            this.#mydb._FileSize = this.#read32(32);
-            
-            // check if is correct BIN (should be 1 for IP2Location BIN file), also checking for zipped file (PK being the first 2 chars)
-            if ((this.#mydb._ProductCode != 1 && this.#mydb._DBYear >= 21) || (this.#mydb._DBType == 80 && this.#mydb._DBColumn == 75)) { // only BINs from Jan 2021 onwards have this byte set
-                throw new Error('Incorrect IP2Location BIN file format. Please make sure that you are using the latest IP2Location BIN file.');
-            }
-            
-            if (this.#mydb._IndexBaseAddr > 0) {
-                this.#mydb._Indexed = 1;
-            }
-            
-            if (this.#mydb._DBCountIPv6 == 0) {
-                this.#mydb._OldBIN = 1;
-            }
-            else if (this.#mydb._IndexBaseAddrIPv6 > 0) {
-                this.#mydb._IndexedIPv6 = 1;
-            }
-            
-            this.#IPv4ColumnSize = this.#mydb._DBColumn << 2; // 4 bytes each column
-            this.#IPv6ColumnSize = 16 + ((this.#mydb._DBColumn - 1) << 2); // 4 bytes each column, except IPFrom column which is 16 bytes
-            
-            let dbt = this.#mydb._DBType;
-            
-            this.#country_pos_offset = (this.#country_pos[dbt] != 0) ? (this.#country_pos[dbt] - 2) << 2 : 0;
-            this.#region_pos_offset = (this.#region_pos[dbt] != 0) ? (this.#region_pos[dbt] - 2) << 2 : 0;
-            this.#city_pos_offset = (this.#city_pos[dbt] != 0) ? (this.#city_pos[dbt] - 2) << 2 : 0;
-            this.#isp_pos_offset = (this.#isp_pos[dbt] != 0) ? (this.#isp_pos[dbt] - 2) << 2 : 0;
-            this.#domain_pos_offset = (this.#domain_pos[dbt] != 0) ? (this.#domain_pos[dbt] - 2) << 2 : 0;
-            this.#zipcode_pos_offset = (this.#zipcode_pos[dbt] != 0) ? (this.#zipcode_pos[dbt] - 2) << 2 : 0;
-            this.#latitude_pos_offset = (this.#latitude_pos[dbt] != 0) ? (this.#latitude_pos[dbt] - 2) << 2 : 0;
-            this.#longitude_pos_offset = (this.#longitude_pos[dbt] != 0) ? (this.#longitude_pos[dbt] - 2) << 2 : 0;
-            this.#timezone_pos_offset = (this.#timezone_pos[dbt] != 0) ? (this.#timezone_pos[dbt] - 2) << 2 : 0;
-            this.#netspeed_pos_offset = (this.#netspeed_pos[dbt] != 0) ? (this.#netspeed_pos[dbt] - 2) << 2 : 0;
-            this.#iddcode_pos_offset = (this.#iddcode_pos[dbt] != 0) ? (this.#iddcode_pos[dbt] - 2) << 2 : 0;
-            this.#areacode_pos_offset = (this.#areacode_pos[dbt] != 0) ? (this.#areacode_pos[dbt] - 2) << 2 : 0;
-            this.#weatherstationcode_pos_offset = (this.#weatherstationcode_pos[dbt] != 0) ? (this.#weatherstationcode_pos[dbt] - 2) << 2 : 0;
-            this.#weatherstationname_pos_offset = (this.#weatherstationname_pos[dbt] != 0) ? (this.#weatherstationname_pos[dbt] - 2) << 2 : 0;
-            this.#mcc_pos_offset = (this.#mcc_pos[dbt] != 0) ? (this.#mcc_pos[dbt] - 2) << 2 : 0;
-            this.#mnc_pos_offset = (this.#mnc_pos[dbt] != 0) ? (this.#mnc_pos[dbt] - 2) << 2 : 0;
-            this.#mobilebrand_pos_offset = (this.#mobilebrand_pos[dbt] != 0) ? (this.#mobilebrand_pos[dbt] - 2) << 2 : 0;
-            this.#elevation_pos_offset = (this.#elevation_pos[dbt] != 0) ? (this.#elevation_pos[dbt] - 2) << 2 : 0;
-            this.#usagetype_pos_offset = (this.#usagetype_pos[dbt] != 0) ? (this.#usagetype_pos[dbt] - 2) << 2 : 0;
-            this.#addresstype_pos_offset = (this.#addresstype_pos[dbt] != 0) ? (this.#addresstype_pos[dbt] - 2) << 2 : 0;
-            this.#category_pos_offset = (this.#category_pos[dbt] != 0) ? (this.#category_pos[dbt] - 2) << 2 : 0;
-            
-            this.#country_enabled = (this.#country_pos[dbt] != 0) ? 1 : 0;
-            this.#region_enabled = (this.#region_pos[dbt] != 0) ? 1 : 0;
-            this.#city_enabled = (this.#city_pos[dbt] != 0) ? 1 : 0;
-            this.#isp_enabled = (this.#isp_pos[dbt] != 0) ? 1 : 0;
-            this.#latitude_enabled = (this.#latitude_pos[dbt] != 0) ? 1 : 0;
-            this.#longitude_enabled = (this.#longitude_pos[dbt] != 0) ? 1 : 0;
-            this.#domain_enabled = (this.#domain_pos[dbt] != 0) ? 1 : 0;
-            this.#zipcode_enabled = (this.#zipcode_pos[dbt] != 0) ? 1 : 0;
-            this.#timezone_enabled = (this.#timezone_pos[dbt] != 0) ? 1 : 0;
-            this.#netspeed_enabled = (this.#netspeed_pos[dbt] != 0) ? 1 : 0;
-            this.#iddcode_enabled = (this.#iddcode_pos[dbt] != 0) ? 1 : 0;
-            this.#areacode_enabled = (this.#areacode_pos[dbt] != 0) ? 1 : 0;
-            this.#weatherstationcode_enabled = (this.#weatherstationcode_pos[dbt] != 0) ? 1 : 0;
-            this.#weatherstationname_enabled = (this.#weatherstationname_pos[dbt] != 0) ? 1 : 0;
-            this.#mcc_enabled = (this.#mcc_pos[dbt] != 0) ? 1 : 0;
-            this.#mnc_enabled = (this.#mnc_pos[dbt] != 0) ? 1 : 0;
-            this.#mobilebrand_enabled = (this.#mobilebrand_pos[dbt] != 0) ? 1 : 0;
-            this.#elevation_enabled = (this.#elevation_pos[dbt] != 0) ? 1 : 0;
-            this.#usagetype_enabled = (this.#usagetype_pos[dbt] != 0) ? 1 : 0;
-            this.#addresstype_enabled = (this.#addresstype_pos[dbt] != 0) ? 1 : 0;
-            this.#category_enabled = (this.#category_pos[dbt] != 0) ? 1 : 0;
-            
-            if (this.#mydb._Indexed == 1) {
-                let pointer = this.#mydb._IndexBaseAddr;
-                
-                for (let x = 0; x < this.#maxindex; x++) {
-                    this.#IndexArrayIPv4[x] = Array(2);
-                    this.#IndexArrayIPv4[x][0] = this.#read32(pointer);
-                    this.#IndexArrayIPv4[x][1] = this.#read32(pointer + 4);
-                    pointer += 8;
-                }
-                
-                if (this.#mydb._IndexedIPv6 == 1) {
-                    for (let x = 0; x < this.#maxindex; x++) {
-                        this.#IndexArrayIPv6[x] = Array(2);
-                        this.#IndexArrayIPv6[x][0] = this.#read32(pointer);
-                        this.#IndexArrayIPv6[x][1] = this.#read32(pointer + 4);
-                        pointer += 8;
-                    }
-                }
-            }
-        } else {
-            throw new Error('No database url provided!');
-        }
+        
     }
 
     close() {
-        this.#binfile = '';
+        this.#database = undefined;
         this.#mydb._DBType = 0;
         this.#mydb._DBColumn = 0;
         this.#mydb._DBYear = 0;
