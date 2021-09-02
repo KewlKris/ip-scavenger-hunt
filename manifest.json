@@ -1,4 +1,4 @@
-{
+{ 
     "name": "IP Scavenger Hunt",
     "description": "Get a taste of the interconnected web! Try to connect to servers from all around the globe!",
     "version": "1.0.0",
@@ -10,6 +10,10 @@
         "<all_urls>"
     ],
     "permissions": [
-        "webRequest"
-    ]
+        "webRequest",
+        "storage"
+    ],
+    "action": {
+        "default_popup": "popup.html"
+    }
 }

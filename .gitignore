@@ -4,3 +4,4 @@ dist
 *.zip
 *.crx
 *.pem
+*.tiny.geojson

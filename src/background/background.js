@@ -1,9 +1,9 @@
 import IP2Location from './ip2location';
 import JSZip from 'jszip';
-import database from './database.zip';
+import database from '../database.zip';
 
 let LOADED = false;
-let GEOJSON, IPV4, IPV6;
+let IPV4, IPV6;
 
 let EVENT_BUFFER = [];
 
@@ -44,8 +44,7 @@ let EVENT_BUFFER = [];
 
     if (!IPV4) console.warn('IPv4 Database not found!');
     if (!IPV6) console.warn('IPv6 database not found!');
-    if (!GEOJSON) console.warn('GeoJSON data not found!');
-
+    
     console.log('Finished loading databases!');
     LOADED = true;
 
@@ -63,6 +62,7 @@ chrome.webRequest.onCompleted.addListener((event) => {
 }, {urls: ['<all_urls>']});
 
 function logConnection(ip) {
+    if (!ip) return;
     let ipDatabase = (ip.indexOf(':') == -1) ? IPV4 : IPV6;
 
     let result = ipDatabase.getAll(ip);

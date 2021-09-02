@@ -4,10 +4,13 @@ const CopyPlugin = require("copy-webpack-plugin");
 const DIST_PATH = path.resolve(__dirname, 'dist');
 
 module.exports = {
-    entry: './src/background.js',
+    entry: {
+        background: './src/background/background.js',
+        popup: './src/popup/popup.js'
+    },
     devtool: 'source-map',
     output: {
-        filename: 'background.js',
+        filename: '[name].js',
         path: DIST_PATH,
         clean: true
     },
@@ -16,6 +19,9 @@ module.exports = {
             patterns: [
                 {
                     from: 'manifest.json', to: path.resolve(DIST_PATH, 'manifest.json')
+                },
+                {
+                    from: './pages/*', to: path.resolve(DIST_PATH, '[name][ext]')
                 }
             ]
         })
@@ -23,7 +29,7 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.zip$/i,
+                test: /\.(zip|tiny\.geojson)$/i,
                 type: 'asset/resource'
             },
             {
