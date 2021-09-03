@@ -11,7 +11,8 @@
     ],
     "permissions": [
         "webRequest",
-        "storage"
+        "storage",
+        "geolocation"
     ],
     "action": {
         "default_popup": "popup.html"

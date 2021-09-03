@@ -93,7 +93,7 @@ async function convertGeoJSON() {
                 let {ADM0_A3_US, ADMIN} = country.properties;
         
                 country.properties = {
-                    ADM0_A3_US: ADM0_A3_US, // 3 letter country code
+                    name: ADM0_A3_US, // 3 letter country code
                     //ADMIN: ADMIN // Country name
                 };
             });

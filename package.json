@@ -4,7 +4,7 @@
   "description": "",
   "private": true,
   "scripts": {
-    "databases": "node run preparedatabases.js",
+    "databases": "node preparedatabases.js",
     "build": "npm run databases && webpack --mode=development",
     "build-nodata": "webpack --mode=development",
     "release": "npm run databases && webpack --mode=production",

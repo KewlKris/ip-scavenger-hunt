@@ -67,4 +67,6 @@ function logConnection(ip) {
 
     let result = ipDatabase.getAll(ip);
     console.log(`Connected to ${ip} | Country: ${result.country_short} State: ${result.region} City: ${result.city}`);
+    chrome.runtime.sendMessage(result, (response) => {
+    });
 }

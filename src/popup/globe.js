@@ -1,16 +1,37 @@
-import {select, geoOrthographic, geoPath} from 'd3';
+import {select, geoOrthographic, geoPath, drag, scaleLinear, geoCircle, geoDistance, geoInterpolate} from 'd3';
 import countries_url from '../countries.tiny.geojson';
 import states_url from '../states.tiny.geojson';
 
-let geojson, globe;
+const PING_SPEED = 3000;
+
+let geojson, globe, location, pingedCountries, unpingedCountries, pings;
 
 async function loadGeoJSON() {
     let [countries, states] = await Promise.all([fetch(countries_url), fetch(states_url)]);
     geojson = {countries: await countries.json(), states: await states.json()};
+
+    let total = [];
+    total.push(...geojson.countries.features, ...geojson.states.features);
+
+    let pingedList = ['Texas', 'DEU', 'FRA', 'Georgia', 'Ohio'];
+    pingedCountries = [];
+    unpingedCountries = [];
+
+    total.forEach(country => {
+        if (pingedList.indexOf(country.properties.name) != -1 && country.properties.name != 'USA') {
+            // This country has been pinged
+            pingedCountries.push(country);
+        } else {
+            // This country has not been pinged
+            unpingedCountries.push(country);
+        }
+    });
 }
 
 async function initializeGlobe() {
-    await loadGeoJSON();
+    pings = [];
+
+    let promises = [loadGeoJSON(), updateLocation()];
 
     let canvas = select('#globe').node();
     let context = canvas.getContext('2d');
@@ -36,15 +57,37 @@ async function initializeGlobe() {
     };
     window.addEventListener('resize', center);
     center();
+
+    // Planet Rotation
+    let globeDrag = drag();
+    globeDrag.on('drag', event => {
+        const {dx, dy} = event;
+        let rotation = projection.rotate();
+        let radius = projection.scale();
+        let scale = scaleLinear()
+            .domain([-radius, radius])
+            .range([-90, 90]);
+        let degX = scale(dx);
+        let degY = scale(dy);
+        rotation[0] += degX;
+        rotation[1] -= degY;
+        if (rotation[1] > 90) rotation[1] = 90;
+        if (rotation[1] < -90) rotation[1] = -90;
+        if (rotation[0] >= 180) rotation[0] -= 360;
+        projection.rotate(rotation);
+    });
+    select(canvas).call(globeDrag);
     
     globe = {canvas, context, projection, generator};
+
+    await Promise.all(promises); // Make sure all setup is finished
 }
 
 function drawGlobe() {
     let {canvas, context, generator} = globe;
 
     context.clearRect(0, 0, canvas.width, canvas.height);
-
+    
     // Draw oceans
     context.fillStyle = '#9aa7b5';
     context.beginPath();
@@ -52,16 +95,105 @@ function drawGlobe() {
     context.fill();
     context.closePath();
 
-    // Draw land
+    // Draw unpinged countries
     context.lineWidth = 0.6;
     context.strokeStyle = '#AAA';
     context.fillStyle = '#EEE';
     context.beginPath();
-    generator({type: 'FeatureCollection', features: geojson.countries.features});
+    unpingedCountries.forEach(country => generator({type: 'Feature', geometry: country.geometry}));
     context.fill();
     context.stroke();
     context.closePath();
+
+    // Draw pinged countries
+    context.fillStyle = '#2874ed';
+    context.beginPath();
+    pingedCountries.forEach(country => generator({type: 'Feature', geometry: country.geometry}));
+    context.fill();
+    context.stroke();
+    context.closePath();
+
+    // Draw pings
+    drawPings();
+
+    // Draw location
+    drawLocation();
 }
+
+function drawLocation() {
+    drawCircle(location.latitude, location.longitude, 1.6, '#FFF');
+    drawCircle(location.latitude, location.longitude, 1.1, '#29c254');
+}
+
+function drawCircle(latitude, longitude, radius, fillStyle) {
+    let {context, generator} = globe;
+    context.fillStyle = fillStyle;
+    let circle = geoCircle().center([longitude, latitude]).radius(radius)();
+    context.beginPath();
+    generator.context(context)(circle);
+    context.fill();
+}
+
+function drawPings() {
+    let time = Date.now();
+    for (let x=0; x<pings.length; x++) {
+        let ping = pings[x];
+        if (time > ping.endTime) {
+            // This ping is expired
+            //console.log('Expiring ping!');
+            //console.log(ping.endTime, time, ping.endTime - time);
+            pings.splice(x, 1);
+            x--;
+            continue;
+        }
+
+        // Draw this ping
+        let progress = (time < ping.startTime + ping.travelTime) ? (time - ping.startTime) / ping.travelTime : (ping.endTime - time) / ping.travelTime;
+        let [long, lat] = ping.interpolator(progress);
+        drawCircle(lat, long, 1, '#F00');
+    }
+}
+
+function updateLocation() {
+    return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            location = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude
+            };
+            resolve();
+        });
+    });
+}
+
+function addPing(latitude, longitude) {
+    //console.log(`Adding ping at: ${latitude} ${longitude}`)
+    let time = Date.now();
+
+    // Calculate the travel time
+    let distance = geoDistance([location.longitude, location.latitude], [longitude, latitude]);
+    let travelTime = distance * PING_SPEED;
+    //console.log('distance', distance);
+    //console.log('travelTime', travelTime);
+
+    let ping = {
+        startPos: JSON.parse(JSON.stringify(location)),
+        targetPos: {latitude, longitude},
+        startTime: time,
+        travelTime: travelTime,
+        endTime: time + (travelTime * 2),
+        interpolator: geoInterpolate([location.longitude, location.latitude], [longitude, latitude])
+    };
+
+    //console.log('Ping:');
+    //console.log(ping);
+
+    pings.push(ping);
+
+    //console.log('All pings:');
+    //console.log(pings);
+}
+
 
 function step(timestamp) {
     drawGlobe(timestamp);
@@ -72,4 +204,4 @@ function startDrawing() {
     window.requestAnimationFrame(step);
 }
 
-export default {initializeGlobe, startDrawing};
+export default {initializeGlobe, startDrawing, addPing};

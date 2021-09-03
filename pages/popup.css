@@ -1,12 +1,30 @@
+:root {
+    --main-grey: #AAA;
+}
+
 html, body {
     width: 400px;
     height: 599px;
     margin: 0;
 
     background-color: #EEE;
+
+    overflow: hidden;
 }
 
 #globe {
-    width: 100%;
-    height: 60%;
+    width: 400px;
+    height: 360px;
+}
+
+#lower-box {
+    width: 400px;
+    height: 239px;
+}
+
+#lower-box hr {
+    margin: 0px 30px;
+    border: 1px solid var(--main-grey);
+    border-radius: 5px;
+    background-color: var(--main-grey);
 }
