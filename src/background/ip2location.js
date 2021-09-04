@@ -153,7 +153,7 @@ class IP2Location {
                 let mybig = BigInt(0); // zero
                 let bitshift = 8;
                 for (let x = 0; x < 16; x++) {
-                    myBig += BigInt(view.getUint8(x) << (bitshift * x));
+                    mybig += BigInt(view.getUint8(x) << (bitshift * x));
                 }
                 return mybig;
         }
@@ -464,20 +464,20 @@ class IP2Location {
                 _ColumnSize = this.#IPv4ColumnSize;
                 
                 if (ipnum >= this.#FROM_6TO4 && ipnum <= this.#TO_6TO4) {
-                    ipnum = (ipnum >>> 80n) & this.#LAST_32BITS;
+                    ipnum = (ipnum >> 80n) & this.#LAST_32BITS;
                 }
                 else {
                     ipnum = (!ipnum) & this.#LAST_32BITS;
                 }
                 if (this.#mydb._Indexed == 1) {
-                    indexaddr = ipnum >>> 16n;
+                    indexaddr = ipnum >> 16n;
                     this.#low = this.#IndexArrayIPv4[indexaddr][0];
                     this.#high = this.#IndexArrayIPv4[indexaddr][1];
                 }
             }
             else {
                 if (this.#mydb._IndexedIPv6 == 1) {
-                    indexaddr = ipnum >>> 112n;
+                    indexaddr = ipnum >> 112n;
                     this.#low = this.#IndexArrayIPv6[indexaddr][0];
                     this.#high = this.#IndexArrayIPv6[indexaddr][1];
                 }
