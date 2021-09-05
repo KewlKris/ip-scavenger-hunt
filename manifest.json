@@ -2,19 +2,18 @@
     "name": "IP Scavenger Hunt",
     "description": "Get a taste of the interconnected web! Try to connect to servers from all around the globe!",
     "version": "1.0.0",
-    "manifest_version": 3,
+    "manifest_version": 2,
     "background": {
-        "service_worker": "background.js"
+        "scripts": ["background.js"],
+        "persistent": true
     },
-    "host_permissions": [
-        "<all_urls>"
-    ],
     "permissions": [
         "webRequest",
         "storage",
-        "geolocation"
+        "geolocation",
+        "<all_urls>"
     ],
-    "action": {
+    "browser_action": {
         "default_popup": "popup.html"
     }
 }
