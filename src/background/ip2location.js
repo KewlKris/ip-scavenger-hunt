@@ -153,7 +153,7 @@ class IP2Location {
                 let mybig = BigInt(0); // zero
                 let bitshift = 8;
                 for (let x = 0; x < 16; x++) {
-                    mybig += BigInt(view.getUint8(x) << (bitshift * x));
+                    mybig += BigInt(view.getUint8(x)) << BigInt((bitshift * x));
                 }
                 return mybig;
         }
@@ -271,20 +271,22 @@ class IP2Location {
             let myarrmid = maxsections - myarrleft.length - myarrright.length;
             
             for (let x = 0; x < myarrleft.length; x++) {
-                total += BigInt(parseInt('0x' + myarrleft[x]) << ((maxsections - (x + 1)) * sectionbits));
+                total += BigInt(parseInt('0x' + myarrleft[x])) << BigInt(((maxsections - (x + 1)) * sectionbits));
             }
             
             for (let x = 0; x < myarrright.length; x++) {
-                total += BigInt(parseInt('0x' + myarrright[x]) << ((myarrright.length - (x + 1)) * sectionbits));
+                total += BigInt(parseInt('0x' + myarrright[x])) << BigInt(((myarrright.length - (x + 1)) * sectionbits));
             }
         }
         else if (m.length == 1) {
             let myarr = m[0].split(':');
             
             for (let x = 0; x < myarr.length; x++) {
-                total += BigInt(parseInt('0x' + myarr[x]) << ((maxsections - (x + 1)) * sectionbits));
+                total += BigInt(BigInt(parseInt('0x' + myarr[x])) << BigInt(((maxsections - (x + 1)) * sectionbits)));
             }
         }
+        
+        //console.log('total', total);
         
         return total;
     }
@@ -459,15 +461,15 @@ class IP2Location {
             if ((ipnum >= this.#FROM_6TO4 && ipnum <= this.#TO_6TO4) || (ipnum >= this.#FROM_TEREDO && ipnum <= this.#TO_TEREDO)) {
                 iptype = 4;
                 MAX_IP_RANGE = this.#MAX_IPV4_RANGE;
-                this.#high = mydb._DBCount;
-                _BaseAddr = mydb._BaseAddr;
+                this.#high = this.#mydb._DBCount;
+                _BaseAddr = this.#mydb._BaseAddr;
                 _ColumnSize = this.#IPv4ColumnSize;
                 
                 if (ipnum >= this.#FROM_6TO4 && ipnum <= this.#TO_6TO4) {
-                    ipnum = (ipnum >> 80n) & this.#LAST_32BITS;
+                    ipnum = (ipnum >> 80n) & BigInt(this.#LAST_32BITS);
                 }
                 else {
-                    ipnum = (!ipnum) & this.#LAST_32BITS;
+                    ipnum = (~ipnum) & this.#LAST_32BITS;
                 }
                 if (this.#mydb._Indexed == 1) {
                     indexaddr = ipnum >> 16n;
