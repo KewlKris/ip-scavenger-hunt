@@ -29,7 +29,7 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.(zip|tiny\.geojson)$/i,
+                test: /\.(bin|tiny\.geojson)$/i,
                 type: 'asset/resource'
             },
             {

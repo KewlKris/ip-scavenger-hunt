@@ -1,50 +1,19 @@
+import {geoDistance, geoInterpolate} from 'd3';
 import IP2Location from './ip2location';
-import JSZip from 'jszip';
-import database from '../database.zip';
+import database from '../database.bin';
 
 let LOADED = false;
-let IPV4, IPV6;
-
+let IP_DATABASE;
 let EVENT_BUFFER = [];
+let PORTS = [];
+let PINGED_LIST = [];
 
 // Load the databass
 (async () => {
+    // Download the database
     console.log('Started loading databases...');
-
-    // Download the archive
     let response = await fetch(database);
-    let archive = await response.arrayBuffer();
-
-    // Load the archive
-    let zip = new JSZip();
-    await zip.loadAsync(archive);
-
-    // Extract files
-    let promises = [];
-    let fileNames = Object.keys(zip.files);
-    fileNames.forEach(fileName => {
-        let file = zip.files[fileName];
-        promises.push(file.async('arraybuffer'));
-    });
-    let fileDatas = await Promise.all(promises);
-
-    // Locate databases
-    fileNames.forEach((fileName, index) => {
-        if (fileName.endsWith('.IPV6.BIN')) {
-            // This is the IPv6 database file
-            IPV6 = new IP2Location(fileDatas[index]);
-        } else if (fileName.endsWith('.BIN')) {
-            // This is the IPv4 database file
-            IPV4 = new IP2Location(fileDatas[index]);
-        } else if (fileName.endsWith('.geojson')) {
-            // This is the geographic database
-            GEOJSON = JSON.parse(new TextDecoder().decode(fileDatas[index]));
-        }
-    });
-
-    if (!IPV4) console.warn('IPv4 Database not found!');
-    if (!IPV6) console.warn('IPv6 database not found!');
-    
+    IP_DATABASE = new IP2Location(await response.arrayBuffer());
     console.log('Finished loading databases!');
     LOADED = true;
 
@@ -61,12 +30,63 @@ chrome.webRequest.onCompleted.addListener((event) => {
     logConnection(event.ip);
 }, {urls: ['<all_urls>']});
 
+chrome.runtime.onConnect.addListener(port => {
+    if (port.name != 'popup') return;
+    PORTS.push(port);
+    port.onMessage.addListener(msg => handleMessage(msg, port));
+    port.onDisconnect.addListener(() => {
+        // Remove the port from the PORTS list
+        PORTS = PORTS.filter(testPort => testPort !== port);
+    });
+});
+
+function handleMessage(message, port) {
+    let {event, data} = message;
+    switch(event) {
+        case 'request-countries':
+            sendMessage(port, 'country-update', PINGED_LIST);
+            break;
+    }
+}
+
+function sendMessage(port, event, data={}) {
+    port.postMessage({event, data});
+}
+
+function broadcastMessage(event, data) {
+    PORTS.forEach(port => {
+        port.postMessage({event, data});
+    });
+}
+
 function logConnection(ip) {
     if (!ip) return;
-    let ipDatabase = (ip.indexOf(':') == -1) ? IPV4 : IPV6;
 
-    let result = ipDatabase.getAll(ip);
+    let result = IP_DATABASE.getAll(ip);
+
+    // Check if this location has been pinged yet
+    let country = result.country_short;
+    let state = result.region;
+
+    broadcastMessage('new-ping', result);
+    updatePingedList(country, state);
+
     console.log(`Connected to ${ip} | Country: ${result.country_short} State: ${result.region} City: ${result.city}`);
-    chrome.runtime.sendMessage(result, (response) => {
-    });
+}
+
+function updatePingedList(country, state) {
+    let pingAdded = false;
+
+    if (PINGED_LIST.indexOf(country) == -1) {
+        // This is a new country ping
+        PINGED_LIST.push(country);
+        pingAdded = true;
+    }
+    if (country == 'US' && PINGED_LIST.indexOf(state) == -1) {
+        // This is a new state ping
+        PINGED_LIST.push(state);
+        pingAdded = true;
+    }
+
+    if (pingAdded) broadcastMessage('country-update', PINGED_LIST);
 }

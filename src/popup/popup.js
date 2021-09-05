@@ -1,12 +1,35 @@
 import globe from './globe';
 
-window.onload = async () => {
-    // Perform initial setup
-    await Promise.all([globe.initializeGlobe()]);
-    globe.startDrawing();
+let PORT;
 
-    chrome.runtime.onMessage.addListener((query, sender, sendResponse) => {
-        globe.addPing(query.latitude, query.longitude);
-        sendResponse();
-    });
+window.onload = async () => {
+    // Initialize
+    await Promise.all([
+        globe.initializeGlobe()
+    ]);
+    initializePort();
+    globe.startDrawing();
 };
+
+function initializePort() {
+    PORT = chrome.runtime.connect(undefined, {
+        name: 'popup'
+    });
+
+    PORT.onMessage.addListener(msg => {
+        let {event, data} = msg;
+        switch(event) {
+            case 'new-ping':
+                globe.addPing(data.latitude, data.longitude);
+                break;
+            case 'country-update':
+                globe.updatePingedCountries(data);
+        }
+    });
+
+    sendMessage('request-countries');
+}
+
+function sendMessage(event, data={}) {
+    PORT.postMessage({event, data});
+}

@@ -4,21 +4,23 @@ import states_url from '../states.tiny.geojson';
 
 const PING_SPEED = 3000;
 
-let geojson, globe, location, pingedCountries, unpingedCountries, pings;
+let geojson, globe, location, allCountries, pingedCountries, unpingedCountries, pings;
 
 async function loadGeoJSON() {
     let [countries, states] = await Promise.all([fetch(countries_url), fetch(states_url)]);
     geojson = {countries: await countries.json(), states: await states.json()};
 
-    let total = [];
-    total.push(...geojson.countries.features, ...geojson.states.features);
+    allCountries = [];
+    allCountries.push(...geojson.countries.features, ...geojson.states.features);
 
-    let pingedList = ['Texas', 'DEU', 'FRA', 'Georgia', 'Ohio'];
+    updatePingedCountries();
+}
+
+function updatePingedCountries(pingedList=[]) {
     pingedCountries = [];
     unpingedCountries = [];
-
-    total.forEach(country => {
-        if (pingedList.indexOf(country.properties.name) != -1 && country.properties.name != 'USA') {
+    allCountries.forEach(country => {
+        if (pingedList.indexOf(country.properties.name) != -1 && country.properties.name != 'US') {
             // This country has been pinged
             pingedCountries.push(country);
         } else {
@@ -132,10 +134,16 @@ function drawCircle(latitude, longitude, radius, fillStyle) {
     context.beginPath();
     generator.context(context)(circle);
     context.fill();
+    context.closePath();
 }
 
 function drawPings() {
     let time = Date.now();
+
+    let {context, generator} = globe;
+    context.fillStyle = '#F00';
+    context.beginPath();
+
     for (let x=0; x<pings.length; x++) {
         let ping = pings[x];
         if (time > ping.endTime) {
@@ -150,8 +158,11 @@ function drawPings() {
         // Draw this ping
         let progress = (time < ping.startTime + ping.travelTime) ? (time - ping.startTime) / ping.travelTime : (ping.endTime - time) / ping.travelTime;
         let [long, lat] = ping.interpolator(progress);
-        drawCircle(lat, long, 1, '#F00');
+        let circle = geoCircle().center([long, lat]).radius(1)();
+        generator.context(context)(circle);
     }
+    context.fill();
+    context.closePath();
 }
 
 function updateLocation() {
@@ -167,14 +178,11 @@ function updateLocation() {
 }
 
 function addPing(latitude, longitude) {
-    //console.log(`Adding ping at: ${latitude} ${longitude}`)
     let time = Date.now();
 
     // Calculate the travel time
     let distance = geoDistance([location.longitude, location.latitude], [longitude, latitude]);
     let travelTime = distance * PING_SPEED;
-    //console.log('distance', distance);
-    //console.log('travelTime', travelTime);
 
     let ping = {
         startPos: JSON.parse(JSON.stringify(location)),
@@ -184,14 +192,7 @@ function addPing(latitude, longitude) {
         endTime: time + (travelTime * 2),
         interpolator: geoInterpolate([location.longitude, location.latitude], [longitude, latitude])
     };
-
-    //console.log('Ping:');
-    //console.log(ping);
-
     pings.push(ping);
-
-    //console.log('All pings:');
-    //console.log(pings);
 }
 
 
@@ -204,4 +205,4 @@ function startDrawing() {
     window.requestAnimationFrame(step);
 }
 
-export default {initializeGlobe, startDrawing, addPing};
+export default {initializeGlobe, startDrawing, addPing, updatePingedCountries};
