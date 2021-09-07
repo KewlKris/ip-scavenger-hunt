@@ -16,11 +16,11 @@ async function loadGeoJSON() {
     updatePingedCountries();
 }
 
-function updatePingedCountries(pingedList=[]) {
+function updatePingedCountries(countries=[]) {
     pingedCountries = [];
     unpingedCountries = [];
     allCountries.forEach(country => {
-        if (pingedList.indexOf(country.properties.name) != -1 && country.properties.name != 'US') {
+        if (countries.indexOf(country.properties.name) != -1 && country.properties.name != 'US') {
             // This country has been pinged
             pingedCountries.push(country);
         } else {
@@ -142,6 +142,7 @@ function drawPings() {
 
     let {context, generator} = globe;
     context.fillStyle = '#F00';
+    //context.strokeStyle = '#400';
     context.beginPath();
 
     for (let x=0; x<pings.length; x++) {
@@ -158,10 +159,18 @@ function drawPings() {
         // Draw this ping
         let progress = (time < ping.startTime + ping.travelTime) ? (time - ping.startTime) / ping.travelTime : (ping.endTime - time) / ping.travelTime;
         let [long, lat] = ping.interpolator(progress);
+        /*
+        let startLat = ping.startPos.latitude;
+        let startLong = ping.startPos.longitude;
+        let endLat = ping.targetPos.latitude;
+        let endLong = ping.targetPos.longitude;
+        */
         let circle = geoCircle().center([long, lat]).radius(1)();
         generator.context(context)(circle);
+        //generator({type: 'Feature', geometry: {type: 'LineString', coordinates: [[startLong, startLat], [endLong, endLat]]}});
     }
     context.fill();
+    //context.stroke();
     context.closePath();
 }
 

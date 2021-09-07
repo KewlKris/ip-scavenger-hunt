@@ -1,5 +1,6 @@
 :root {
     --main-grey: #AAA;
+    --main-blue: #2874ed;
 }
 
 html, body {
@@ -27,4 +28,45 @@ html, body {
     border: 1px solid var(--main-grey);
     border-radius: 5px;
     background-color: var(--main-grey);
+}
+
+.info-toolbar {
+    display: flex;
+    justify-content: space-around;
+    align-items:baseline;
+
+    padding: 10px;
+    padding-top: 5px;
+    height: 45px;
+}
+
+.toolbar-item {
+    transition-duration: 0.4s;
+
+    padding: 7px 25px;
+    font-weight: bold;
+    font-size: 12pt;
+    font-family: sans-serif;
+    color: var(--main-grey);
+
+    border-style:solid;
+    border-radius: 5px;
+    border-color: var(--main-grey);
+    border-width:3px;
+
+    cursor: pointer;
+
+    text-align:center;
+}
+
+.toolbar-item:hover {
+    color: var(--main-blue);
+    border-color: var(--main-blue);
+}
+
+.toolbar-item-selected {
+    color: var(--main-blue);
+    border-color: var(--main-blue);
+
+    font-size: 14pt;
 }

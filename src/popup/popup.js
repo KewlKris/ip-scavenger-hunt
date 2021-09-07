@@ -7,6 +7,8 @@ window.onload = async () => {
     await Promise.all([
         globe.initializeGlobe()
     ]);
+    initializeToolbar();
+    selectPage(1);
     initializePort();
     globe.startDrawing();
 };
@@ -23,7 +25,7 @@ function initializePort() {
                 globe.addPing(data.latitude, data.longitude);
                 break;
             case 'country-update':
-                globe.updatePingedCountries(data);
+                globe.updatePingedCountries(Object.keys(data.countries));
         }
     });
 
@@ -32,4 +34,22 @@ function initializePort() {
 
 function sendMessage(event, data={}) {
     PORT.postMessage({event, data});
+}
+
+function initializeToolbar() {
+    let buttons = document.querySelectorAll('.toolbar-item');
+    buttons.forEach((button, index) => {
+        button.onclick = () => {
+            selectPage(index);
+        }
+    });
+}
+
+function selectPage(index) {
+    let buttons = document.querySelectorAll('.toolbar-item');
+    buttons.forEach(button => {
+        button.classList.remove('toolbar-item-selected');
+    });
+
+    buttons[index].classList.add('toolbar-item-selected');
 }
