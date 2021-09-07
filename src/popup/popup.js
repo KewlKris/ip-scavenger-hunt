@@ -52,4 +52,8 @@ function selectPage(index) {
     });
 
     buttons[index].classList.add('toolbar-item-selected');
+
+    // Change the info page
+    let slider = document.querySelector('.info-slider');
+    slider.style = `left: ${-index*100}%`;
 }

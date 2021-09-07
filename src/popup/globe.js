@@ -37,7 +37,7 @@ async function initializeGlobe() {
 
     let canvas = select('#globe').node();
     let context = canvas.getContext('2d');
-    let projection = geoOrthographic().scale(170);
+    let projection = geoOrthographic().scale(155);
     let generator = geoPath()
         .projection(projection)
         .pointRadius(4)

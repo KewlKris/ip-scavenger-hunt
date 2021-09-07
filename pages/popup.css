@@ -15,12 +15,12 @@ html, body {
 
 #globe {
     width: 400px;
-    height: 360px;
+    height: 330px;
 }
 
 #lower-box {
     width: 400px;
-    height: 239px;
+    height: 269px;
 }
 
 #lower-box hr {
@@ -55,6 +55,7 @@ html, body {
     border-width:3px;
 
     cursor: pointer;
+    user-select: none;
 
     text-align:center;
 }
@@ -69,4 +70,25 @@ html, body {
     border-color: var(--main-blue);
 
     font-size: 14pt;
+}
+
+.info-content {
+    overflow: hidden;
+    margin: 15px 30px;
+    width: auto;
+    height: auto;
+}
+
+.info-slider {
+    transition: all 0.5s ease-in-out;
+
+    width: 300%;
+    position: relative;
+    left: calc(100% * -1);
+    transform: translateZ(0);
+}
+
+.content-item {
+    width: calc((100% / 3) - 3px);
+    display: inline-block;
 }
