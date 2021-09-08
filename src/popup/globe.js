@@ -181,6 +181,7 @@ function updateLocation() {
                 latitude: pos.coords.latitude,
                 longitude: pos.coords.longitude
             };
+            globe.projection.rotate([-location.longitude, -location.latitude, 0]);
             resolve();
         });
     });

@@ -92,3 +92,8 @@ html, body {
     width: calc((100% / 3) - 3px);
     display: inline-block;
 }
+
+#recent-list {
+    margin: 0;
+    padding: 0;
+}

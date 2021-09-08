@@ -23,6 +23,7 @@ function initializePort() {
         switch(event) {
             case 'new-ping':
                 globe.addPing(data.latitude, data.longitude);
+                addRecentPing(data);
                 break;
             case 'country-update':
                 globe.updatePingedCountries(Object.keys(data.countries));
@@ -56,4 +57,24 @@ function selectPage(index) {
     // Change the info page
     let slider = document.querySelector('.info-slider');
     slider.style = `left: ${-index*100}%`;
+}
+
+function addRecentPing(pingData) {
+    let elem = e => document.createElement(e);
+
+    let row = elem('tr');
+    let flag = elem('td');
+    flag.innerText = codeToFlag(pingData.country_short);
+    let state = elem('td');
+    state.innerText = pingData.region;
+    let city = elem('td');
+    city.innerText = pingData.city;
+    
+    [flag, state, city].forEach(node => row.appendChild(node));
+
+    document.querySelector('#recent-list').appendChild(row);
+}
+
+function codeToFlag(code) {
+    return code.replace(/./g, char => String.fromCodePoint(char.charCodeAt(0)+127397));
 }

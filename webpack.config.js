@@ -21,7 +21,7 @@ module.exports = {
                     from: 'manifest.json', to: path.resolve(DIST_PATH, 'manifest.json')
                 },
                 {
-                    from: './pages/*', to: path.resolve(DIST_PATH, '[name][ext]')
+                    from: './pages', context: '.', to: path.resolve(DIST_PATH)
                 }
             ]
         })
