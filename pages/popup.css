@@ -1,5 +1,6 @@
 :root {
     --main-grey: #AAA;
+    --light-grey: #DDD;
     --main-blue: #2874ed;
 }
 
@@ -11,6 +12,8 @@ html, body {
     background-color: #EEE;
 
     overflow: hidden;
+
+    font-family: sans-serif;
 }
 
 #globe {
@@ -46,7 +49,6 @@ html, body {
     padding: 7px 25px;
     font-weight: bold;
     font-size: 12pt;
-    font-family: sans-serif;
     color: var(--main-grey);
 
     border-style:solid;
@@ -91,9 +93,47 @@ html, body {
 .content-item {
     width: calc((100% / 3) - 3px);
     display: inline-block;
+    overflow: hidden;
 }
 
 #recent-list {
     margin: 0;
     padding: 0;
+    width: 100%;
 }
+
+.recent-dark {
+    background-color: var(--light-grey);
+}
+
+#recent-list tr {
+    width: 100%;
+    height: 0px;
+    border-width: 0px;
+
+    transition: all 3s ease-in-out;
+
+    overflow: hidden;
+}
+
+#recent-list tr.recent-visible {
+    height: 30px;
+}
+
+#recent-list td {
+    text-align: center;
+    font-weight: bold;
+    font-size: 10pt;
+    border-width: 0px;
+}
+
+#recent-list img {
+    width: 100%;
+    margin: auto;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#recent-list tr td:nth-child(1) { width: 30px; padding: 5px 10px; }
+#recent-list tr td:nth-child(2) { width: 95px; padding: 0px 5px; }
+#recent-list tr td:nth-child(3) { width: 120px; padding: 0px 5px; }

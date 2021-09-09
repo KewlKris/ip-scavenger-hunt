@@ -1,6 +1,7 @@
 import globe from './globe';
 
 let PORT;
+let recentDark = true;
 
 window.onload = async () => {
     // Initialize
@@ -64,7 +65,9 @@ function addRecentPing(pingData) {
 
     let row = elem('tr');
     let flag = elem('td');
-    flag.innerText = codeToFlag(pingData.country_short);
+    let flagImg = elem('img');
+    flagImg.src = `./png/${pingData.country_short.toLowerCase()}.png`;
+    flag.appendChild(flagImg);
     let state = elem('td');
     state.innerText = pingData.region;
     let city = elem('td');
@@ -72,7 +75,11 @@ function addRecentPing(pingData) {
     
     [flag, state, city].forEach(node => row.appendChild(node));
 
-    document.querySelector('#recent-list').appendChild(row);
+    if (recentDark) row.classList.add('recent-dark');
+    recentDark = !recentDark;
+    document.querySelector('#recent-list').insertBefore(row, document.querySelector('#recent-list tr'));
+
+    //setTimeout(() => row.classList.add('recent-visible'), 100);
 }
 
 function codeToFlag(code) {
