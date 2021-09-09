@@ -63,14 +63,14 @@ function selectPage(index) {
 function addRecentPing(pingData) {
     let elem = e => document.createElement(e);
 
-    let row = elem('tr');
-    let flag = elem('td');
+    let row = elem('div');
+    let flag = elem('div');
     let flagImg = elem('img');
     flagImg.src = `./png/${pingData.country_short.toLowerCase()}.png`;
     flag.appendChild(flagImg);
-    let state = elem('td');
+    let state = elem('div');
     state.innerText = pingData.region;
-    let city = elem('td');
+    let city = elem('div');
     city.innerText = pingData.city;
     
     [flag, state, city].forEach(node => row.appendChild(node));
@@ -79,7 +79,7 @@ function addRecentPing(pingData) {
     recentDark = !recentDark;
     document.querySelector('#recent-list').insertBefore(row, document.querySelector('#recent-list tr'));
 
-    //setTimeout(() => row.classList.add('recent-visible'), 100);
+    setTimeout(() => row.classList.add('recent-visible'), 100);
 }
 
 function codeToFlag(code) {
