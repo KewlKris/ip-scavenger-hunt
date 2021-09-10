@@ -70,7 +70,6 @@ function logConnection(ip) {
     let country = result.country_short;
     let state = result.region;
 
-    broadcastMessage('new-ping', result);
     updatePingLog(result);
 
     console.log(`Connected to ${ip} | Country: ${result.country_short} State: ${result.region} City: ${result.city}`);
@@ -81,66 +80,46 @@ function updatePingLog(pingInfo) {
     let state = pingInfo.region;
     let {latitude, longitude, city} = pingInfo;
 
-    let pingAdded = false;
     let keys = Object.keys(PING_LOG);
+
+    let logInfo = {
+        timestamp: Date.now(),
+        latitude,
+        longitude,
+        country,
+        state,
+        city
+    };
 
     if (keys.indexOf(country) == -1) {
         // This is a new country ping
         PING_LOG.countries[country] = {
             pingCount: 1,
-            pings: [
-                {
-                    timestamp: Date.now(),
-                    latitude,
-                    longitude,
-                    country,
-                    state,
-                    city
-                }
-            ]
+            pings: [logInfo]
         };
     } else {
         // This country has already been pinged, but log it
         PING_LOG.countries[country].pingCount += 1;
-        PING_LOG.countries[country].pings.push({
-            timestamp: Date.now(),
-            latitude,
-            longitude,
-            country,
-            state,
-            city
-        })
+        PING_LOG.countries[country].pings.push(logInfo);
     }
 
     if (country == 'US' && keys.indexOf(state) == -1) {
         // This is a new state ping
         PING_LOG.countries[state] = {
             pingCount: 1,
-            pings: [
-                {
-                    timestamp: Date.now(),
-                    latitude,
-                    longitude,
-                    country,
-                    state,
-                    city
-                }
-            ]
+            pings: [logInfo]
         };
     } else if (country == 'US' && keys.indexOf(state) != -1) {
         // This state has already been pinged, but log it
         PING_LOG.countries[state].pingCount += 1;
-        PING_LOG.countries[state].pings.push({
-            timestamp: Date.now(),
-            latitude,
-            longitude,
-            country,
-            state,
-            city
-        });
+        PING_LOG.countries[state].pings.push(logInfo);
     }
 
+    PING_LOG.recent.splice(0, 0, logInfo);
+    PING_LOG.recent.splice(6, PING_LOG.recent.length - 6); // Let there only be 6 recent pings
+
     PING_LOG.stats.totalPings += 1;
+    broadcastMessage('new-ping', logInfo);
     broadcastMessage('country-update', PING_LOG);
     savePingLog();
 }
@@ -161,7 +140,9 @@ function loadPingLog() {
                 countries: {},
                 stats: {
                     totalPings: 0
-                }
+                },
+                recent: [],
+                version: 1
             };
 
             resolve();

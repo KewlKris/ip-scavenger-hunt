@@ -2,6 +2,7 @@ import globe from './globe';
 
 let PORT;
 let recentDark = true;
+let firstCountryUpdate = true;
 
 window.onload = async () => {
     // Initialize
@@ -28,6 +29,10 @@ function initializePort() {
                 break;
             case 'country-update':
                 globe.updatePingedCountries(Object.keys(data.countries));
+                if (firstCountryUpdate) {
+                    setInitialRecentPings(data);
+                    firstCountryUpdate = false;
+                }
         }
     });
 
@@ -60,17 +65,28 @@ function selectPage(index) {
     slider.style = `left: ${-index*100}%`;
 }
 
-function addRecentPing(pingData) {
+function setInitialRecentPings(pingData) {
+    let pings = pingData.recent;
+
+    // Add the pings in reverse to maintain correct order
+    for (let x=pings.length-1; x>=0; x--) {
+        let ping = pings[x];
+
+        addRecentPing(ping, true);
+    }
+}
+
+function addRecentPing(pingData, noTransition=false) {
     let elem = e => document.createElement(e);
     let list = document.querySelector('#recent-list');
 
     let row = elem('div');
     let flag = elem('div');
     let flagImg = elem('img');
-    flagImg.src = `./png/${pingData.country_short.toLowerCase()}.png`;
+    flagImg.src = `./flags/${pingData.country.toLowerCase()}.png`;
     flag.appendChild(flagImg);
     let state = elem('div');
-    state.innerText = pingData.region;
+    state.innerText = pingData.state;
     let city = elem('div');
     city.innerText = pingData.city;
     
@@ -80,7 +96,8 @@ function addRecentPing(pingData) {
     recentDark = !recentDark;
     list.insertBefore(row, document.querySelector('#recent-list div'));
 
-    setTimeout(() => row.classList.add('recent-visible'), 100);
+    if (noTransition) row.classList.add('recent-visible');
+    else setTimeout(() => row.classList.add('recent-visible'), 100);
 
     // Remove any extra rows
     let removeList = [];
@@ -93,8 +110,4 @@ function addRecentPing(pingData) {
         element.classList.add('recent-invisible');
         setTimeout(() => element.remove(), 1000);
     });
-}
-
-function codeToFlag(code) {
-    return code.replace(/./g, char => String.fromCodePoint(char.charCodeAt(0)+127397));
 }
