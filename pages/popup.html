@@ -16,7 +16,56 @@
             <div class="info-content">
                 <div class="info-slider">
                     <div class="content-item">
-                        Content 1
+                        <div id="stats">
+                            <div id="stats-left">
+                                <table class="stats-table">
+                                    <tr>
+                                        <td>Progress:</td>
+                                        <td id="stats-scavengingprogress">?</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Pings:</td>
+                                        <td id="stats-totalpings">?</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Unique Pings:</td>
+                                        <td id="stats-uniquepings">?</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Repeat Pings:</td>
+                                        <td id="stats-repeatpings">?</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div id="stats-right">
+                                <table class="stats-table">
+                                    <tr>
+                                        <td>
+                                            <label for="stats-pingheatmap">Ping Heatmap:</label>
+                                        </td>
+                                        <td id="stats-pingheatmap">
+                                            <input type="checkbox" id="stats-pingheatmap">
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label for="stats-showlines">Show All Pings:</label>
+                                        </td>
+                                        <td id="stats-showlines">
+                                            <input type="checkbox" id="stats-showlines">
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label for="stats-includeus">Include US States:</label>
+                                        </td>
+                                        <td id="stats-includeus">
+                                            <input type="checkbox" id="stats-includeus">
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                     <div class="content-item">
                         <div id="recent-list">
@@ -29,7 +78,7 @@
                             <div class="about-header">
                                 <span class="about-title">GeoIP Scavenger Hunt</span>
                                 <br>
-                                Version: 1.0.0
+                                Version: <span id="version">?.?.?</span>
                             </div>
 
                             <div class="about-license">This site or product includes IP2Location LITE data

@@ -174,3 +174,24 @@ html, body {
     align-self: flex-end;
     padding-bottom: 35px;
 }
+
+#stats {
+    height: 100%;
+    font-size: 10pt;
+}
+
+#stats>div { width: 50%; }
+#stats>div:nth-child(1) { float:left; }
+#stats>div:nth-child(2) { float:right; }
+
+.stats-table {
+    margin: 0 auto;
+}
+
+.stats-table tr>td:nth-child(1) {
+    padding-right: 15px;
+}
+
+.stats-table tr>td:nth-child(2) {
+    float: right;
+}

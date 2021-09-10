@@ -215,4 +215,8 @@ function startDrawing() {
     window.requestAnimationFrame(step);
 }
 
+function getTotalCountries() {
+    return allCountries.length;
+}
+
 export default {initializeGlobe, startDrawing, addPing, updatePingedCountries};
