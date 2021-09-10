@@ -22,6 +22,9 @@ module.exports = {
                 },
                 {
                     from: './pages', context: '.', to: path.resolve(DIST_PATH)
+                },
+                {
+                    from: './icons', to: path.resolve(DIST_PATH, 'icons')
                 }
             ]
         })

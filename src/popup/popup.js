@@ -62,6 +62,7 @@ function selectPage(index) {
 
 function addRecentPing(pingData) {
     let elem = e => document.createElement(e);
+    let list = document.querySelector('#recent-list');
 
     let row = elem('div');
     let flag = elem('div');
@@ -77,9 +78,21 @@ function addRecentPing(pingData) {
 
     if (recentDark) row.classList.add('recent-dark');
     recentDark = !recentDark;
-    document.querySelector('#recent-list').insertBefore(row, document.querySelector('#recent-list tr'));
+    list.insertBefore(row, document.querySelector('#recent-list div'));
 
     setTimeout(() => row.classList.add('recent-visible'), 100);
+
+    // Remove any extra rows
+    let removeList = [];
+    Array(...list.children).forEach((element, index) => {
+        if (index >= 6) {
+            removeList.push(element);
+        }
+    });
+    removeList.forEach(element => {
+        element.classList.add('recent-invisible');
+        setTimeout(() => element.remove(), 1000);
+    });
 }
 
 function codeToFlag(code) {
