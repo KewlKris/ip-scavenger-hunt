@@ -18,15 +18,15 @@ function handleHover(event) {
     let x = event.pageX - rect.left;
     let y = event.pageY - rect.top;
 
+    let xOffset = 10;
+    let yOffset = -5;
+
     let country = globe.getCountryOnScreen(x, y);
     if (!country) {
         infoBox.style.opacity = 0;
         return;
     }
 
-    infoBox.style.left = String(event.pageX + 10) + 'px';
-    infoBox.style.top = String(event.pageY - 5) + 'px';
-    infoBox.style.opacity = 1;
     infoCountry.innerText = country.name_long;
     if (!PING_LOG.countries[country.name]) {
         // This country has not been pinged
@@ -36,6 +36,16 @@ function handleHover(event) {
         let pingStr = PING_LOG.settings.displayPercents ? formatPercent(pingCount, PING_LOG.stats.totalPings) : formatNumber(pingCount);
         infoPings.innerText = 'Pings: ' + pingStr;
     }
+
+    let boxRect = infoBox.getBoundingClientRect();
+    if (boxRect.width + event.pageX + xOffset > window.innerWidth) {
+        infoBox.style.left = String(event.pageX - boxRect.width - xOffset) + 'px';
+        infoBox.style.top = String(event.pageY + yOffset) + 'px';
+    } else {
+        infoBox.style.left = String(event.pageX + xOffset) + 'px';
+        infoBox.style.top = String(event.pageY + yOffset) + 'px';
+    }
+    infoBox.style.opacity = 1;
 }
 
 function updatePingLog(log) {
