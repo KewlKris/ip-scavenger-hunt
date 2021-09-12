@@ -14,10 +14,11 @@ async function convertGeoJSON(name, data) {
 
         // Strip unnecessary information
         json.features.forEach(country => {
-            let {ISO_A2} = country.properties;
+            let {ISO_A2_EH, POSTAL, NAME} = country.properties;
     
             country.properties = {
-                name: ISO_A2
+                name: (POSTAL.length == 2) ? POSTAL : ISO_A2_EH,
+                name_long: NAME
                 //name: ADM0_A3_US, // 3 letter country code
                 //ADMIN: ADMIN // Country name
             };
@@ -33,7 +34,8 @@ async function convertGeoJSON(name, data) {
             if (iso_a2 != 'US') return; // Skip non-US states
 
             state.properties = {
-                name: name
+                name: name,
+                name_long: name
             }
         });
     }

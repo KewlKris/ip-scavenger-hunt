@@ -195,3 +195,31 @@ html, body {
 .stats-table tr>td:nth-child(2) {
     float: right;
 }
+
+#globe-popup {
+    z-index: 2;
+    position: absolute;
+
+    padding: 8px;
+
+    transition: opacity 0.3s ease-in-out;
+
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+
+    color: white;
+
+    user-select: none;
+    pointer-events: none;
+}
+
+#globeinfo-countryname {
+    text-align: center;
+    font-size: 10pt;
+}
+
+.nowebrequests {
+    margin: auto;
+    text-align: center;
+    display: block;
+}

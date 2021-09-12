@@ -25,6 +25,17 @@ function selectPage(index) {
 function setInitialRecentPings(pingData) {
     let pings = pingData.recent;
 
+    if (pings.length == 0 && document.querySelectorAll('#noweb').length == 0) {
+        let span = document.createElement('span');
+        span.innerText = 'No web requests have been logged yet!';
+        span.id = 'noweb';
+        span.classList.add('nowebrequests');
+
+        document.getElementById('recent-list').appendChild(span);
+        return;
+    }
+    if (document.querySelector('#noweb')) document.querySelector('#noweb').remove();
+
     // Add the pings in reverse to maintain correct order
     for (let x=pings.length-1; x>=0; x--) {
         let ping = pings[x];
@@ -34,6 +45,7 @@ function setInitialRecentPings(pingData) {
 }
 
 function addRecentPing(pingData, noTransition=false) {
+    if (document.querySelector('#noweb')) document.querySelector('#noweb').remove();
     let elem = e => document.createElement(e);
     let list = document.querySelector('#recent-list');
 
@@ -73,10 +85,44 @@ function setVersion() {
     document.getElementById('version').innerText = chrome.runtime.getManifest().version;
 }
 
+function updateStats(stats) {
+    let {progress, totalPings, uniquePings, repeatPings} = stats;
+
+    let setElem = (id, value) => document.getElementById(id).innerText = value;
+
+    setElem('stats-scavengingprogress', progress);
+    setElem('stats-totalpings', totalPings);
+    setElem('stats-uniquepings', uniquePings);
+    setElem('stats-repeatpings', repeatPings);
+}
+
+function getSettings() {
+    let getChecked = id => document.getElementById(id).checked;
+
+    return {
+        includeStates: getChecked('stats-includeus'),
+        showAllPings: getChecked('stats-showlines'),
+        pingHeatmap: getChecked('stats-pingheatmap'),
+        displayPercents: getChecked('stats-displaypercents')
+    };
+}
+
+function setSettings(settings) {
+    let setChecked = (id, value) => document.getElementById(id).checked = value;
+
+    setChecked('stats-includeus', settings.includeStates);
+    setChecked('stats-showlines', settings.showAllPings);
+    setChecked('stats-pingheatmap', settings.pingHeatmap);
+    setChecked('stats-displaypercents', settings.displayPercents);
+}
+
 export default {
     initializeToolbar,
     selectPage,
     setInitialRecentPings,
     addRecentPing,
-    setVersion
+    setVersion,
+    updateStats,
+    getSettings,
+    setSettings
 };

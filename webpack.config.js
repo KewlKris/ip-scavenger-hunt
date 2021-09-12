@@ -6,7 +6,8 @@ const DIST_PATH = path.resolve(__dirname, 'dist');
 module.exports = {
     entry: {
         background: './src/background/background.js',
-        popup: './src/popup/popup.js'
+        popup: './src/popup/popup.js',
+        options: './src/options/options.js'
     },
     devtool: 'source-map',
     output: {

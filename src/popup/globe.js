@@ -1,10 +1,11 @@
-import {select, geoOrthographic, geoPath, drag, scaleLinear, geoCircle, geoDistance, geoInterpolate} from 'd3';
+import {select, geoOrthographic, geoPath, drag, scaleLinear, geoCircle, geoDistance, geoInterpolate, geoContains} from 'd3';
 import countries_url from '../countries.tiny.geojson';
 import states_url from '../states.tiny.geojson';
 
 const PING_SPEED = 3000;
 
-let geojson, globe, location, allCountries, pingedCountries, unpingedCountries, pings;
+let geojson, globe, location, allCountries, pingedCountries, unpingedCountries, pings, uniquePings, heatmapRankings;
+let settings = {};
 
 async function loadGeoJSON() {
     let [countries, states] = await Promise.all([fetch(countries_url), fetch(states_url)]);
@@ -20,18 +21,18 @@ function updatePingedCountries(countries=[]) {
     pingedCountries = [];
     unpingedCountries = [];
     allCountries.forEach(country => {
-        if (countries.indexOf(country.properties.name) != -1 && country.properties.name != 'US') {
-            // This country has been pinged
-            pingedCountries.push(country);
-        } else {
-            // This country has not been pinged
-            unpingedCountries.push(country);
-        }
+        // Mark a country as pinged if it has been pinged and if it matches the current state selection status
+        ((countryIsActive(country.properties.name) && countries.indexOf(country.properties.name) != -1)
+        ? pingedCountries
+        : unpingedCountries)
+        .push(country);
     });
 }
 
 async function initializeGlobe() {
     pings = [];
+    uniquePings = [];
+    heatmapRankings = {};
 
     let promises = [loadGeoJSON(), updateLocation()];
 
@@ -95,31 +96,52 @@ function drawGlobe() {
     context.beginPath();
     generator({type: 'Sphere'});
     context.fill();
-    context.closePath();
+    //context.closePath();
 
     // Draw unpinged countries
     context.lineWidth = 0.6;
     context.strokeStyle = '#AAA';
     context.fillStyle = '#EEE';
     context.beginPath();
-    unpingedCountries.forEach(country => generator({type: 'Feature', geometry: country.geometry}));
+    unpingedCountries.forEach(country => {
+        if (countryIsActive(country.properties.name)) generator({type: 'Feature', geometry: country.geometry});
+    });
     context.fill();
     context.stroke();
-    context.closePath();
+    //context.closePath();
 
-    // Draw pinged countries
-    context.fillStyle = '#2874ed';
-    context.beginPath();
-    pingedCountries.forEach(country => generator({type: 'Feature', geometry: country.geometry}));
-    context.fill();
-    context.stroke();
-    context.closePath();
+    if (!settings.pingHeatmap) {
+        // Draw pinged countries
+        context.fillStyle = '#2874ed';
+        context.beginPath();
+        pingedCountries.forEach(country => {
+            if (countryIsActive(country.properties.name)) generator({type: 'Feature', geometry: country.geometry});
+        });
+        context.fill();
+        context.stroke();
+        //context.closePath();
+    } else {
+        // Heatmap is active
+        pingedCountries.forEach(country => {
+            let countryName = country.properties.name;
+            if (!countryIsActive(countryName)) return;
+
+            context.beginPath();
+            context.fillStyle = getHeatmapColor(heatmapRankings[countryName]);
+            generator({type: 'Feature', geometry: country.geometry});
+            context.fill();
+            context.stroke();
+        });
+    }
 
     // Draw pings
     drawPings();
 
     // Draw location
     drawLocation();
+
+    // Draw unique pings if selected
+    if (settings.showAllPings) drawUniquePings();
 }
 
 function drawLocation() {
@@ -134,7 +156,7 @@ function drawCircle(latitude, longitude, radius, fillStyle) {
     context.beginPath();
     generator.context(context)(circle);
     context.fill();
-    context.closePath();
+    //context.closePath();
 }
 
 function drawPings() {
@@ -171,7 +193,20 @@ function drawPings() {
     }
     context.fill();
     //context.stroke();
-    context.closePath();
+    //context.closePath();
+}
+
+function drawUniquePings() {
+    let {context, generator} = globe;
+
+    context.beginPath();
+
+	context.strokeStyle = 'red';
+    context.lineWidth = 0.6;
+    uniquePings.forEach(ping => {
+        generator({type: 'Feature', geometry: {type: 'LineString', coordinates: [[location.longitude, location.latitude], [ping.longitude, ping.latitude]]}});
+    });
+    context.stroke();
 }
 
 function updateLocation() {
@@ -206,6 +241,19 @@ function addPing(latitude, longitude) {
 }
 
 
+function getHeatmapColor(val) {
+    let lighest = [43, 125, 255];
+    let darkest = [14, 39, 79];
+
+    let newColor = [];
+    for (let x=0; x<lighest.length; x++) {
+        newColor.push(((darkest[x] - lighest[x]) * val) + lighest[x]);
+    }
+
+    return `rgb(${newColor[0]}, ${newColor[1]}, ${newColor[2]})`;
+    
+}
+
 function step(timestamp) {
     drawGlobe(timestamp);
     window.requestAnimationFrame(step);
@@ -215,8 +263,52 @@ function startDrawing() {
     window.requestAnimationFrame(step);
 }
 
-function getTotalCountries() {
-    return allCountries.length;
+function getPingLists() {
+    return {
+        allCountries,
+        pingedCountries,
+        unpingedCountries
+    };
 }
 
-export default {initializeGlobe, startDrawing, addPing, updatePingedCountries};
+function setSettings(set) {
+    settings = set;
+}
+
+function countryIsActive(countryName) {
+    if (settings.includeStates) {
+        return countryName != 'US';
+    } else {
+        return countryName.length == 2;
+    }
+}
+
+function setUniquePings(pings) {
+    uniquePings = pings;
+}
+
+function setHeatmapRankings(rankings) {
+    heatmapRankings = rankings;
+}
+
+function getCountryOnScreen(x, y) {
+    let [longitude, latitude] = globe.projection.invert([x, y]);
+
+    let rotation = globe.projection.rotate();
+    let angle = geoDistance([longitude, latitude], [-rotation[0], -rotation[1]]);
+        
+    if (angle >= Math.PI / 2) return; // Don't draw anything non-visible
+
+    for (let x=0; x<allCountries.length; x++) {
+        let country = allCountries[x];
+        if (!countryIsActive(country.properties.name)) continue;
+        if (!geoContains(country, [longitude, latitude])) continue;
+        return country.properties;
+    }
+}
+
+export default {
+    initializeGlobe, startDrawing, addPing, updatePingedCountries,
+    getPingLists, setSettings, countryIsActive, setUniquePings,
+    setHeatmapRankings, getCountryOnScreen
+};

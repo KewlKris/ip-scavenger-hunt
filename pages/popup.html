@@ -43,15 +43,15 @@
                                         <td>
                                             <label for="stats-pingheatmap">Ping Heatmap:</label>
                                         </td>
-                                        <td id="stats-pingheatmap">
+                                        <td>
                                             <input type="checkbox" id="stats-pingheatmap">
                                         </td>
                                     </tr>
                                     <tr>
                                         <td>
-                                            <label for="stats-showlines">Show All Pings:</label>
+                                            <label for="stats-showlines">Draw Ping Lines:</label>
                                         </td>
-                                        <td id="stats-showlines">
+                                        <td>
                                             <input type="checkbox" id="stats-showlines">
                                         </td>
                                     </tr>
@@ -59,8 +59,16 @@
                                         <td>
                                             <label for="stats-includeus">Include US States:</label>
                                         </td>
-                                        <td id="stats-includeus">
+                                        <td>
                                             <input type="checkbox" id="stats-includeus">
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label for="stats-displaypercents">Display Percents:</label>
+                                        </td>
+                                        <td>
+                                            <input type="checkbox" id="stats-displaypercents">
                                         </td>
                                     </tr>
                                 </table>
@@ -88,6 +96,10 @@
                     </div>
                 </div>
             </div>
+        </div>
+        <div id="globe-popup">
+            <div id="globeinfo-countryname">?</div>
+            <div id="globeinfo-pingcount">?</div>
         </div>
     </body>
 </html>

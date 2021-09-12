@@ -48,6 +48,17 @@ function handleMessage(message, port) {
         case 'request-countries':
             sendMessage(port, 'country-update', PING_LOG);
             break;
+        case 'request-settings':
+            sendMessage(port, 'settings-update', PING_LOG);
+            break;
+        case 'set-settings':
+            PING_LOG.settings = data;
+            broadcastMessage('settings-update', PING_LOG);
+            savePingLog();
+            break;
+        case 'settings-cleardata':
+            broadcastMessage('settings-cleardata');
+            loadPingLog();
     }
 }
 
@@ -70,9 +81,11 @@ function logConnection(ip) {
     let country = result.country_short;
     let state = result.region;
 
+    if (country == '-' || state == '-') return; // Skip missing data
+
     updatePingLog(result);
 
-    console.log(`Connected to ${ip} | Country: ${result.country_short} State: ${result.region} City: ${result.city}`);
+    //console.log(`Connected to ${ip} | Country: ${result.country_short} State: ${result.region} City: ${result.city}`);
 }
 
 function updatePingLog(pingInfo) {
@@ -80,7 +93,7 @@ function updatePingLog(pingInfo) {
     let state = pingInfo.region;
     let {latitude, longitude, city} = pingInfo;
 
-    let keys = Object.keys(PING_LOG);
+    let keys = Object.keys(PING_LOG.countries);
 
     let logInfo = {
         timestamp: Date.now(),
@@ -142,6 +155,12 @@ function loadPingLog() {
                     totalPings: 0
                 },
                 recent: [],
+                settings: {
+                    includeStates: true,
+                    showAllPings: false,
+                    pingHeatmap: false,
+                    displayPercents: false
+                },
                 version: 1
             };
 
