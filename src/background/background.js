@@ -7,6 +7,8 @@ let IP_DATABASE;
 let EVENT_BUFFER = [];
 let PORTS = [];
 let PING_LOG;
+let BROADCAST_BUFFER = [];
+let BROADCAST_TIMESTAMP = 0;
 
 // Load the databass
 (async () => {
@@ -22,6 +24,21 @@ let PING_LOG;
 
     // Log all the IPs recorded while the databases were loading
     EVENT_BUFFER.forEach(ip => logConnection(ip));
+
+    // Save data every one in a while
+    setInterval(() => {
+        if (PORTS.length == 0) {
+            // Only save if popups are closed. This prevents lag.
+            savePingLog();
+        }
+    }, 120 * 1000);
+
+    flushBroadcastBuffer();
+    setInterval(() => {
+        if (BROADCAST_TIMESTAMP - Date.now() > 2000 || BROADCAST_BUFFER.length > 10) {
+            flushBroadcastBuffer();
+        }
+    }, 500);
 })();
 
 chrome.webRequest.onCompleted.addListener((event) => {
@@ -60,6 +77,9 @@ function handleMessage(message, port) {
         case 'settings-cleardata':
             broadcastMessage('settings-cleardata');
             loadPingLog();
+        case 'save-log':
+            savePingLog();
+            break;
     }
 }
 
@@ -68,9 +88,25 @@ function sendMessage(port, event, data={}) {
 }
 
 function broadcastMessage(event, data) {
+    BROADCAST_BUFFER.push({
+        msg: {event, data},
+        timeout: BROADCAST_TIMESTAMP - Date.now()
+    });
+
+    /*
     PORTS.forEach(port => {
         port.postMessage({event, data});
     });
+    */
+}
+
+function flushBroadcastBuffer() {
+    BROADCAST_TIMESTAMP = Date.now();
+    if (BROADCAST_BUFFER.length == 0) return;
+    PORTS.forEach(port => {
+        port.postMessage({event: 'buffered', data: BROADCAST_BUFFER});
+    });
+    BROADCAST_BUFFER = [];
 }
 
 function logConnection(ip) {
@@ -135,7 +171,7 @@ function updatePingLog(pingInfo) {
     PING_LOG.stats.totalPings += 1;
     broadcastMessage('new-ping', logInfo);
     broadcastMessage('country-update', PING_LOG);
-    savePingLog();
+    //savePingLog();
 }
 
 function savePingLog() {

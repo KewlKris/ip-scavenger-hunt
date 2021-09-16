@@ -5,6 +5,7 @@ import globeinfo from './globeinfo';
 let PORT;
 let firstCountryUpdate = true;
 let settings = {};
+let PING_LOG = undefined;
 
 window.onload = async () => {
     // Initialize
@@ -22,6 +23,18 @@ window.onload = async () => {
         let settings = info.getSettings();
         sendMessage('set-settings', settings);
     };
+
+    // Only update settings if things are running smoothly
+    setInterval(() => {
+        if (globe.getLastFrameDuration() < 100) {
+            globe.updatePingedCountries(Object.keys(PING_LOG.countries));
+            updateStats(PING_LOG);
+        }
+    }, 3000);
+};
+
+window.onclose = () => {
+    sendMessage('save-log');
 };
 
 function initializePort() {
@@ -29,38 +42,45 @@ function initializePort() {
         name: 'popup'
     });
 
-    PORT.onMessage.addListener(msg => {
-        let {event, data} = msg;
-        switch(event) {
-            case 'new-ping':
-                globe.addPing(data.latitude, data.longitude);
-                info.addRecentPing(data);
-                break;
-            case 'country-update':
-                globe.updatePingedCountries(Object.keys(data.countries));
-                if (firstCountryUpdate) {
-                    info.setInitialRecentPings(data);
-                    firstCountryUpdate = false;
-                }
-                updateStats(data);
-                globeinfo.updatePingLog(data);
-                break;
-            case 'settings-update':
-                info.setSettings(data.settings);
-                globe.setSettings(data.settings);
-                settings = data.settings;
-                globe.updatePingedCountries(Object.keys(data.countries));
-                updateStats(data);
-                globeinfo.updatePingLog(data);
-                break;
-            case 'settings-cleardata':
-                window.close();
-                break;
-        }
-    });
+    PORT.onMessage.addListener(handleMessage);
 
     sendMessage('request-countries');
     sendMessage('request-settings');
+}
+
+function handleMessage(msg) {
+    let {event, data} = msg;
+    switch(event) {
+        case 'new-ping':
+            globe.addPing(data.latitude, data.longitude);
+            info.addRecentPing(data);
+            break;
+        case 'country-update':
+            if (firstCountryUpdate) {
+                info.setInitialRecentPings(data);
+                firstCountryUpdate = false;
+            }
+            PING_LOG = data;
+            globeinfo.updatePingLog(data);
+            break;
+        case 'settings-update':
+            info.setSettings(data.settings);
+            globe.setSettings(data.settings);
+            settings = data.settings;
+            globe.updatePingedCountries(Object.keys(data.countries));
+            PING_LOG = data;
+            updateStats(data);
+            globeinfo.updatePingLog(data);
+            break;
+        case 'settings-cleardata':
+            window.close();
+            break;
+        case 'buffered':
+            data.forEach(message => {
+                setTimeout(() => handleMessage(message.msg), message.timeout);
+            });
+            break;
+    }
 }
 
 function updateStats(data) {
@@ -135,6 +155,8 @@ function updateStats(data) {
     totalPings = formatNumber(totalPings);
 
     info.updateStats({progress, totalPings, uniquePings, repeatPings});
+
+    console.log(globe.getLastFrameDuration());
 }
 
 function sendMessage(event, data={}) {

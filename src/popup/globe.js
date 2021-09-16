@@ -5,6 +5,7 @@ import states_url from '../states.tiny.geojson';
 const PING_SPEED = 3000;
 
 let geojson, globe, location, allCountries, pingedCountries, unpingedCountries, pings, uniquePings, heatmapRankings;
+let previousTimestamp, recentTimestamp;
 let settings = {};
 
 async function loadGeoJSON() {
@@ -33,6 +34,8 @@ async function initializeGlobe() {
     pings = [];
     uniquePings = [];
     heatmapRankings = {};
+    previousTimestamp = Date.now();
+    recentTimestamp = Date.now();
 
     let promises = [loadGeoJSON(), updateLocation()];
 
@@ -88,6 +91,9 @@ async function initializeGlobe() {
 
 function drawGlobe() {
     let {canvas, context, generator} = globe;
+
+    previousTimestamp = recentTimestamp;
+    recentTimestamp = Date.now();
 
     context.clearRect(0, 0, canvas.width, canvas.height);
     
@@ -307,8 +313,12 @@ function getCountryOnScreen(x, y) {
     }
 }
 
+function getLastFrameDuration() {
+    return recentTimestamp - previousTimestamp;
+}
+
 export default {
     initializeGlobe, startDrawing, addPing, updatePingedCountries,
     getPingLists, setSettings, countryIsActive, setUniquePings,
-    setHeatmapRankings, getCountryOnScreen
+    setHeatmapRankings, getCountryOnScreen, getLastFrameDuration
 };
