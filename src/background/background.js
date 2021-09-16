@@ -1,5 +1,6 @@
 import IP2Location from './ip2location';
 import database from '../database.bin';
+import LZUTF8 from 'lzutf8';
 
 let LOADED = false;
 let IP_DATABASE;
@@ -139,7 +140,8 @@ function updatePingLog(pingInfo) {
 
 function savePingLog() {
     return new Promise((resolve, reject) => {
-        chrome.storage.local.set({pingLog: PING_LOG}, () => {
+        let data = LZUTF8.compress(JSON.stringify(PING_LOG), {outputEncoding: 'Base64'});
+        chrome.storage.local.set({pingLog: data}, () => {
             resolve();
         });
     });
@@ -148,21 +150,27 @@ function savePingLog() {
 function loadPingLog() {
     return new Promise((resolve, reject) => {
         chrome.storage.local.get('pingLog', result => {
-            PING_LOG = result.pingLog;
-            PING_LOG ??= {
-                countries: {},
-                stats: {
-                    totalPings: 0
-                },
-                recent: [],
-                settings: {
-                    includeStates: true,
-                    showAllPings: false,
-                    pingHeatmap: false,
-                    displayPercents: false
-                },
-                version: 1
-            };
+            let data = result.pingLog;
+
+            if (!data) {
+                // Fresh install or data deleted
+                PING_LOG = {
+                    countries: {},
+                    stats: {
+                        totalPings: 0
+                    },
+                    recent: [],
+                    settings: {
+                        includeStates: true,
+                        showAllPings: false,
+                        pingHeatmap: false,
+                        displayPercents: false
+                    },
+                    version: 1
+                };
+            } else {
+                PING_LOG = JSON.parse(LZUTF8.decompress(data, {inputEncoding: 'Base64'}));
+            }
 
             resolve();
         });

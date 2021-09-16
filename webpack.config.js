@@ -1,5 +1,6 @@
 const path = require('path');
 const CopyPlugin = require("copy-webpack-plugin");
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
 const DIST_PATH = path.resolve(__dirname, 'dist');
 
@@ -28,7 +29,8 @@ module.exports = {
                     from: './icons', to: path.resolve(DIST_PATH, 'icons')
                 }
             ]
-        })
+        }),
+        new NodePolyfillPlugin()
     ],
     module: {
         rules: [
