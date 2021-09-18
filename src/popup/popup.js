@@ -145,5 +145,6 @@ function formatNumber(num) {
 }
 
 function formatPercent(value, total) {
+    if (!total) return '0.0%';
     return String((value / total * 100).toFixed(1)) + '%';
 }
