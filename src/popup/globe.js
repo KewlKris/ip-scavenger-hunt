@@ -177,8 +177,6 @@ function drawPings() {
         let ping = pings[x];
         if (time > ping.endTime) {
             // This ping is expired
-            //console.log('Expiring ping!');
-            //console.log(ping.endTime, time, ping.endTime - time);
             pings.splice(x, 1);
             x--;
             continue;
@@ -187,19 +185,10 @@ function drawPings() {
         // Draw this ping
         let progress = (time < ping.startTime + ping.travelTime) ? (time - ping.startTime) / ping.travelTime : (ping.endTime - time) / ping.travelTime;
         let [long, lat] = ping.interpolator(progress);
-        /*
-        let startLat = ping.startPos.latitude;
-        let startLong = ping.startPos.longitude;
-        let endLat = ping.targetPos.latitude;
-        let endLong = ping.targetPos.longitude;
-        */
         let circle = geoCircle().center([long, lat]).radius(1)();
         generator.context(context)(circle);
-        //generator({type: 'Feature', geometry: {type: 'LineString', coordinates: [[startLong, startLat], [endLong, endLat]]}});
     }
     context.fill();
-    //context.stroke();
-    //context.closePath();
 }
 
 function drawUniquePings() {
@@ -317,8 +306,13 @@ function getLastFrameDuration() {
     return recentTimestamp - previousTimestamp;
 }
 
+function revealGlobe() {
+    globe.canvas.style.opacity = 1;
+}
+
 export default {
     initializeGlobe, startDrawing, addPing, updatePingedCountries,
     getPingLists, setSettings, countryIsActive, setUniquePings,
-    setHeatmapRankings, getCountryOnScreen, getLastFrameDuration
+    setHeatmapRankings, getCountryOnScreen, getLastFrameDuration,
+    revealGlobe
 };

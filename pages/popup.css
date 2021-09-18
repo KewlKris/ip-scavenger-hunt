@@ -19,6 +19,9 @@ html, body {
 #globe {
     width: 400px;
     height: 330px;
+
+    transition: opacity 0.1s linear;
+    opacity: 0;
 }
 
 #lower-box {
@@ -118,7 +121,6 @@ html, body {
     display: flex;
     align-content: center;
     justify-content: center;
-    /*align-items: flex-end*/;
     overflow: hidden;
 
     transition: all 0.3s ease-in-out;
@@ -137,6 +139,8 @@ html, body {
     font-size: 10pt;
     border-width: 0px;
     display: inline-block;
+
+    cursor: default;
 }
 
 #recent-list img {
@@ -147,8 +151,8 @@ html, body {
 }
 
 #recent-list>div div:nth-child(1) { width: 30px; padding: 5px 10px; }
-#recent-list>div div:nth-child(2) { width: 95px; padding: 5px 5px; }
-#recent-list>div div:nth-child(3) { width: 120px; padding: 5px 5px; }
+#recent-list>div div:nth-child(2) { width: 95px; padding: 5px 5px; white-space:nowrap;}
+#recent-list>div div:nth-child(3) { width: 120px; padding: 5px 5px; white-space:nowrap;}
 
 #about {
     text-align: center;
@@ -188,6 +192,8 @@ html, body {
     margin: 0 auto;
     width: 100%;
     padding: 0 5px;
+
+    cursor: default;
 }
 
 .stats-table tr>td:nth-child(1) {

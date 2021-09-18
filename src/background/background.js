@@ -7,8 +7,6 @@ let IP_DATABASE;
 let EVENT_BUFFER = [];
 let PORTS = [];
 let PING_LOG;
-let BROADCAST_BUFFER = [];
-let BROADCAST_TIMESTAMP = 0;
 
 // Load the databass
 (async () => {
@@ -24,21 +22,6 @@ let BROADCAST_TIMESTAMP = 0;
 
     // Log all the IPs recorded while the databases were loading
     EVENT_BUFFER.forEach(ip => logConnection(ip));
-
-    // Save data every one in a while
-    setInterval(() => {
-        if (PORTS.length == 0) {
-            // Only save if popups are closed. This prevents lag.
-            savePingLog();
-        }
-    }, 120 * 1000);
-
-    flushBroadcastBuffer();
-    setInterval(() => {
-        if (BROADCAST_TIMESTAMP - Date.now() > 2000 || BROADCAST_BUFFER.length > 10) {
-            flushBroadcastBuffer();
-        }
-    }, 500);
 })();
 
 chrome.webRequest.onCompleted.addListener((event) => {
@@ -63,8 +46,8 @@ chrome.runtime.onConnect.addListener(port => {
 function handleMessage(message, port) {
     let {event, data} = message;
     switch(event) {
-        case 'request-countries':
-            sendMessage(port, 'country-update', PING_LOG);
+        case 'request-log':
+            sendMessage(port, 'log-update', PING_LOG);
             break;
         case 'request-settings':
             sendMessage(port, 'settings-update', PING_LOG);
@@ -88,25 +71,9 @@ function sendMessage(port, event, data={}) {
 }
 
 function broadcastMessage(event, data) {
-    BROADCAST_BUFFER.push({
-        msg: {event, data},
-        timeout: BROADCAST_TIMESTAMP - Date.now()
-    });
-
-    /*
     PORTS.forEach(port => {
         port.postMessage({event, data});
     });
-    */
-}
-
-function flushBroadcastBuffer() {
-    BROADCAST_TIMESTAMP = Date.now();
-    if (BROADCAST_BUFFER.length == 0) return;
-    PORTS.forEach(port => {
-        port.postMessage({event: 'buffered', data: BROADCAST_BUFFER});
-    });
-    BROADCAST_BUFFER = [];
 }
 
 function logConnection(ip) {
@@ -121,14 +88,12 @@ function logConnection(ip) {
     if (country == '-' || state == '-') return; // Skip missing data
 
     updatePingLog(result);
-
-    //console.log(`Connected to ${ip} | Country: ${result.country_short} State: ${result.region} City: ${result.city}`);
 }
 
 function updatePingLog(pingInfo) {
     let country = pingInfo.country_short;
     let state = pingInfo.region;
-    let {latitude, longitude, city} = pingInfo;
+    let {latitude, longitude, city, country_long} = pingInfo;
 
     let keys = Object.keys(PING_LOG.countries);
 
@@ -138,40 +103,58 @@ function updatePingLog(pingInfo) {
         longitude,
         country,
         state,
-        city
+        city,
+        country_long
     };
 
     if (keys.indexOf(country) == -1) {
         // This is a new country ping
         PING_LOG.countries[country] = {
+            name: country,
             pingCount: 1,
-            pings: [logInfo]
+            uniquePings: 1,
+            repeatPings: 0,
+            pings: [String(latitude) + '|' + String(longitude)]
         };
     } else {
         // This country has already been pinged, but log it
-        PING_LOG.countries[country].pingCount += 1;
-        PING_LOG.countries[country].pings.push(logInfo);
+        addPingToCountry(PING_LOG.countries[country], latitude, longitude);
     }
 
     if (country == 'US' && keys.indexOf(state) == -1) {
         // This is a new state ping
         PING_LOG.countries[state] = {
+            name: state,
             pingCount: 1,
-            pings: [logInfo]
+            uniquePings: 1,
+            repeatPings: 0,
+            pings: [String(latitude) + '|' + String(longitude)]
         };
     } else if (country == 'US' && keys.indexOf(state) != -1) {
         // This state has already been pinged, but log it
-        PING_LOG.countries[state].pingCount += 1;
-        PING_LOG.countries[state].pings.push(logInfo);
+        addPingToCountry(PING_LOG.countries[state], latitude, longitude);
     }
 
     PING_LOG.recent.splice(0, 0, logInfo);
     PING_LOG.recent.splice(6, PING_LOG.recent.length - 6); // Let there only be 6 recent pings
 
     PING_LOG.stats.totalPings += 1;
-    broadcastMessage('new-ping', logInfo);
-    broadcastMessage('country-update', PING_LOG);
-    //savePingLog();
+    broadcastMessage('new-ping', {ping: logInfo, PING_LOG});
+    savePingLog();
+}
+
+function addPingToCountry(country, latitude, longitude) {
+    let combination = String(latitude) + '|' + String(longitude);
+
+    if (country.pings.indexOf(combination) == -1) {
+        // This is a unique ping
+        country.pings.push(combination);
+        country.uniquePings += 1;
+    } else {
+        country.repeatPings += 1;
+    }
+
+    country.pingCount += 1;
 }
 
 function savePingLog() {
