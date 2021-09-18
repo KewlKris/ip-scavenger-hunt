@@ -6,7 +6,7 @@
   GeoIp Scavenger Hunt
 </h1>
 
-This is a browser extension for Google Chrome which helps visualize all of the world wide connections we make while surfing the web!
+This is a browser extension for Google Chrome which helps visualize all of the worldwide connections we make while surfing the web! Is it possible to connect to every country in the world?
 
 ## Installation
 
