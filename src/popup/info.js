@@ -53,11 +53,14 @@ function addRecentPing(pingData, noTransition=false) {
     let flag = elem('div');
     let flagImg = elem('img');
     flagImg.src = `./flags/${pingData.country.toLowerCase()}.png`;
+    flagImg.title = pingData.country_long;
     flag.appendChild(flagImg);
     let state = elem('div');
-    state.innerText = pingData.state;
+    state.innerText = limitLength(pingData.state, 16);
+    state.title = pingData.state;
     let city = elem('div');
-    city.innerText = pingData.city;
+    city.innerText = limitLength(pingData.city, 16);
+    city.title = pingData.city;
     
     [flag, state, city].forEach(node => row.appendChild(node));
 
@@ -114,6 +117,14 @@ function setSettings(settings) {
     setChecked('stats-showlines', settings.showAllPings);
     setChecked('stats-pingheatmap', settings.pingHeatmap);
     setChecked('stats-displaypercents', settings.displayPercents);
+}
+
+function limitLength(text, length) {
+    if (text.length > length) {
+        text = text.substring(0, length-3) + '...';
+    }
+
+    return text;
 }
 
 export default {

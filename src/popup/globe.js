@@ -5,6 +5,7 @@ import states_url from '../states.tiny.geojson';
 const PING_SPEED = 3000;
 
 let geojson, globe, location, allCountries, pingedCountries, unpingedCountries, pings, uniquePings, heatmapRankings;
+let previousTimestamp, recentTimestamp;
 let settings = {};
 
 async function loadGeoJSON() {
@@ -33,6 +34,8 @@ async function initializeGlobe() {
     pings = [];
     uniquePings = [];
     heatmapRankings = {};
+    previousTimestamp = Date.now();
+    recentTimestamp = Date.now();
 
     let promises = [loadGeoJSON(), updateLocation()];
 
@@ -88,6 +91,9 @@ async function initializeGlobe() {
 
 function drawGlobe() {
     let {canvas, context, generator} = globe;
+
+    previousTimestamp = recentTimestamp;
+    recentTimestamp = Date.now();
 
     context.clearRect(0, 0, canvas.width, canvas.height);
     
@@ -171,8 +177,6 @@ function drawPings() {
         let ping = pings[x];
         if (time > ping.endTime) {
             // This ping is expired
-            //console.log('Expiring ping!');
-            //console.log(ping.endTime, time, ping.endTime - time);
             pings.splice(x, 1);
             x--;
             continue;
@@ -181,19 +185,10 @@ function drawPings() {
         // Draw this ping
         let progress = (time < ping.startTime + ping.travelTime) ? (time - ping.startTime) / ping.travelTime : (ping.endTime - time) / ping.travelTime;
         let [long, lat] = ping.interpolator(progress);
-        /*
-        let startLat = ping.startPos.latitude;
-        let startLong = ping.startPos.longitude;
-        let endLat = ping.targetPos.latitude;
-        let endLong = ping.targetPos.longitude;
-        */
         let circle = geoCircle().center([long, lat]).radius(1)();
         generator.context(context)(circle);
-        //generator({type: 'Feature', geometry: {type: 'LineString', coordinates: [[startLong, startLat], [endLong, endLat]]}});
     }
     context.fill();
-    //context.stroke();
-    //context.closePath();
 }
 
 function drawUniquePings() {
@@ -307,8 +302,17 @@ function getCountryOnScreen(x, y) {
     }
 }
 
+function getLastFrameDuration() {
+    return recentTimestamp - previousTimestamp;
+}
+
+function revealGlobe() {
+    globe.canvas.style.opacity = 1;
+}
+
 export default {
     initializeGlobe, startDrawing, addPing, updatePingedCountries,
     getPingLists, setSettings, countryIsActive, setUniquePings,
-    setHeatmapRankings, getCountryOnScreen
+    setHeatmapRankings, getCountryOnScreen, getLastFrameDuration,
+    revealGlobe
 };

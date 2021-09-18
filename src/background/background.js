@@ -46,8 +46,8 @@ chrome.runtime.onConnect.addListener(port => {
 function handleMessage(message, port) {
     let {event, data} = message;
     switch(event) {
-        case 'request-countries':
-            sendMessage(port, 'country-update', PING_LOG);
+        case 'request-log':
+            sendMessage(port, 'log-update', PING_LOG);
             break;
         case 'request-settings':
             sendMessage(port, 'settings-update', PING_LOG);
@@ -60,6 +60,9 @@ function handleMessage(message, port) {
         case 'settings-cleardata':
             broadcastMessage('settings-cleardata');
             loadPingLog();
+        case 'save-log':
+            savePingLog();
+            break;
     }
 }
 
@@ -85,14 +88,12 @@ function logConnection(ip) {
     if (country == '-' || state == '-') return; // Skip missing data
 
     updatePingLog(result);
-
-    //console.log(`Connected to ${ip} | Country: ${result.country_short} State: ${result.region} City: ${result.city}`);
 }
 
 function updatePingLog(pingInfo) {
     let country = pingInfo.country_short;
     let state = pingInfo.region;
-    let {latitude, longitude, city} = pingInfo;
+    let {latitude, longitude, city, country_long} = pingInfo;
 
     let keys = Object.keys(PING_LOG.countries);
 
@@ -102,40 +103,58 @@ function updatePingLog(pingInfo) {
         longitude,
         country,
         state,
-        city
+        city,
+        country_long
     };
 
     if (keys.indexOf(country) == -1) {
         // This is a new country ping
         PING_LOG.countries[country] = {
+            name: country,
             pingCount: 1,
-            pings: [logInfo]
+            uniquePings: 1,
+            repeatPings: 0,
+            pings: [String(latitude) + '|' + String(longitude)]
         };
     } else {
         // This country has already been pinged, but log it
-        PING_LOG.countries[country].pingCount += 1;
-        PING_LOG.countries[country].pings.push(logInfo);
+        addPingToCountry(PING_LOG.countries[country], latitude, longitude);
     }
 
     if (country == 'US' && keys.indexOf(state) == -1) {
         // This is a new state ping
         PING_LOG.countries[state] = {
+            name: state,
             pingCount: 1,
-            pings: [logInfo]
+            uniquePings: 1,
+            repeatPings: 0,
+            pings: [String(latitude) + '|' + String(longitude)]
         };
     } else if (country == 'US' && keys.indexOf(state) != -1) {
         // This state has already been pinged, but log it
-        PING_LOG.countries[state].pingCount += 1;
-        PING_LOG.countries[state].pings.push(logInfo);
+        addPingToCountry(PING_LOG.countries[state], latitude, longitude);
     }
 
     PING_LOG.recent.splice(0, 0, logInfo);
     PING_LOG.recent.splice(6, PING_LOG.recent.length - 6); // Let there only be 6 recent pings
 
     PING_LOG.stats.totalPings += 1;
-    broadcastMessage('new-ping', logInfo);
-    broadcastMessage('country-update', PING_LOG);
+    broadcastMessage('new-ping', {ping: logInfo, PING_LOG});
     savePingLog();
+}
+
+function addPingToCountry(country, latitude, longitude) {
+    let combination = String(latitude) + '|' + String(longitude);
+
+    if (country.pings.indexOf(combination) == -1) {
+        // This is a unique ping
+        country.pings.push(combination);
+        country.uniquePings += 1;
+    } else {
+        country.repeatPings += 1;
+    }
+
+    country.pingCount += 1;
 }
 
 function savePingLog() {

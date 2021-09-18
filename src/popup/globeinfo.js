@@ -30,7 +30,7 @@ function handleHover(event) {
     infoCountry.innerText = country.name_long;
     if (!PING_LOG.countries[country.name]) {
         // This country has not been pinged
-        infoPings.innerText = `Pings: 0`;
+        infoPings.innerText = PING_LOG.settings.displayPercents ? 'Pings: 0.0%' : 'Pings: 0';
     } else {
         let pingCount = PING_LOG.countries[country.name].pingCount;
         let pingStr = PING_LOG.settings.displayPercents ? formatPercent(pingCount, PING_LOG.stats.totalPings) : formatNumber(pingCount);

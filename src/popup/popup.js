@@ -3,8 +3,8 @@ import info from './info';
 import globeinfo from './globeinfo';
 
 let PORT;
-let firstCountryUpdate = true;
 let settings = {};
+let PING_LOG = undefined;
 
 window.onload = async () => {
     // Initialize
@@ -24,57 +24,77 @@ window.onload = async () => {
     };
 };
 
+window.onclose = () => {
+    sendMessage('save-log');
+};
+
 function initializePort() {
     PORT = chrome.runtime.connect(undefined, {
         name: 'popup'
     });
 
-    PORT.onMessage.addListener(msg => {
-        let {event, data} = msg;
-        switch(event) {
-            case 'new-ping':
-                globe.addPing(data.latitude, data.longitude);
-                info.addRecentPing(data);
-                break;
-            case 'country-update':
-                globe.updatePingedCountries(Object.keys(data.countries));
-                if (firstCountryUpdate) {
-                    info.setInitialRecentPings(data);
-                    firstCountryUpdate = false;
-                }
-                updateStats(data);
-                globeinfo.updatePingLog(data);
-                break;
-            case 'settings-update':
-                info.setSettings(data.settings);
-                globe.setSettings(data.settings);
-                settings = data.settings;
-                globe.updatePingedCountries(Object.keys(data.countries));
-                updateStats(data);
-                globeinfo.updatePingLog(data);
-                break;
-            case 'settings-cleardata':
-                window.close();
-                break;
-        }
-    });
+    PORT.onMessage.addListener(handleMessage);
 
-    sendMessage('request-countries');
+    sendMessage('request-log');
     sendMessage('request-settings');
+}
+
+function handleMessage(msg) {
+    let {event, data} = msg;
+    switch(event) {
+        case 'new-ping':
+            let ping = data.ping;
+            let log = data.PING_LOG;
+            globe.addPing(ping.latitude, ping.longitude);
+            info.addRecentPing(ping);
+
+            PING_LOG = log;
+            globeinfo.updatePingLog(log);
+            updateStats(log);
+            break;
+        case 'settings-update':
+            info.setSettings(data.settings);
+            globe.setSettings(data.settings);
+            settings = data.settings;
+            globe.updatePingedCountries(Object.keys(data.countries));
+            PING_LOG = data;
+            updateStats(data);
+            globeinfo.updatePingLog(data);
+            break;
+        case 'settings-cleardata':
+            window.close();
+            break;
+        case 'log-update':
+            PING_LOG = data;
+            globeinfo.updatePingLog(data);
+            info.setInitialRecentPings(data);
+            globe.revealGlobe();
+            break;
+        case 'buffered':
+            data.forEach(message => {
+                setTimeout(() => handleMessage(message.msg), message.timeout);
+            });
+            break;
+    }
 }
 
 function updateStats(data) {
     let countries = data.countries;
     let {allCountries, pingedCountries, unpingedCountries} = globe.getPingLists();
 
-    let statsCountryNames = []; // Only consider countries based on whether states are included or not
+    let statsCountries = []; // Only consider countries based on whether states are included or not
+    let activeCount = 0;
     allCountries.forEach(country => {
         let countryName = country.properties.name;
-        if (globe.countryIsActive(countryName)) statsCountryNames.push(countryName);
+        if (globe.countryIsActive(countryName)) {
+            activeCount++;
+            if (countries[countryName]) statsCountries.push(countries[countryName]);
+        }
     });
+    statsCountries.sort((a, b) => a.pingCount - b.pingCount);
 
     // Calculate progress
-    let total = statsCountryNames.length;
+    let total = activeCount;
     let completed = pingedCountries.length;
     let progress = settings.displayPercents ? formatPercent(completed, total) : `${formatNumber(completed)} / ${formatNumber(total)}`;
 
@@ -83,48 +103,22 @@ function updateStats(data) {
     let uniquePings = 0;
     let repeatPings = 0;
     let uniquePingCoords = [];
-    let highestPings = 0;
-    let lowestPings = 0xFFFFFFFFF;
-    statsCountryNames.forEach(countryName => {
-        if (countries[countryName] == undefined) return;
-        let country = countries[countryName];
+    statsCountries.forEach(country => {
+        totalPings += country.pingCount;
+        uniquePings += country.uniquePings;
+        repeatPings += country.repeatPings;
 
-        let pingCount = country.pings.length;
-        if (pingCount > highestPings) highestPings = pingCount;
-        if (pingCount < lowestPings) lowestPings = pingCount;
-
-        let pingedList = [];
-        country.pings.forEach(ping => {
-            let unique = true;
-            for (let x=0; x<pingedList.length; x++) {
-                let testPing = pingedList[x];
-                if (testPing.state == ping.state && testPing.city == ping.city) {
-                    unique = false;
-                    break;
-                }
-            }
-
-            totalPings++;
-            if (unique) {
-                pingedList.push({state: ping.state, city: ping.city, latitude: ping.latitude, longitude: ping.longitude});
-                uniquePings++;
-            } else {
-                repeatPings++;
-            }
-        });
-        uniquePingCoords.push(...pingedList);
+        uniquePingCoords.push(...country.pings.map(ping => {
+            let coords = ping.split('|').map(coord => Number(coord));
+            return {latitude: coords[0], longitude: coords[1]};
+        }));
     });
 
     // Loop again to calculate weights for pinged countries
     let heatmapRankings = {};
-    let pingRange = highestPings - lowestPings;
-    statsCountryNames.forEach(countryName => {
-        if (countries[countryName] == undefined) return;
-        let country = countries[countryName];
-        let pingCount = country.pings.length;
-
-        let offset = pingCount - lowestPings;
-        heatmapRankings[countryName] = offset / pingRange;
+    statsCountries.forEach((country, index) => {
+        if (statsCountries.length > 1) heatmapRankings[country.name] = index / (statsCountries.length - 1);
+        else heatmapRankings[country.name] = 1;
     });
 
     globe.setUniquePings(uniquePingCoords);
@@ -151,5 +145,6 @@ function formatNumber(num) {
 }
 
 function formatPercent(value, total) {
+    if (!total) return '0.0%';
     return String((value / total * 100).toFixed(1)) + '%';
 }
