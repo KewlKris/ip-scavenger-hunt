@@ -10,7 +10,7 @@ This is a browser extension for Google Chrome which helps visualize all of the w
 
 ## Installation
 
-This extension can be installed [here](https://chrome.google.com/webstore/detail/geoip-scavenger-hunt/mkfnhhpghjndoehnekjjjjibdjojclne/related) from the Chrome Web Store, but you can also install it manually after building via the following steps:
+This extension can be installed [here](https://chrome.google.com/webstore/detail/geoip-scavenger-hunt/mkfnhhpghjndoehnekjjjjibdjojclne) from the Chrome Web Store, but you can also install it manually after building via the following steps:
 1. Navigate to chrome://extensions
 2. Enable Developer mode (top right slider)
 3. Click the "Load Unpacked" button and select the `dist` folder of this repository
@@ -31,7 +31,7 @@ Finally, the **About** tab displays the current version of the extension.
 
 ## Building
 
-Building the extension is unnecessary if you install it from the [Chrome Web Store](https://chrome.google.com/webstore/detail/geoip-scavenger-hunt/mkfnhhpghjndoehnekjjjjibdjojclne/related), but it is a straightforward process nonetheless. The only caveat is the GeoIP database needs to be manually downloaded and placed in the `database` folder. This extension requires `IP2LOCATION-LITE-DB5.IPV6.BIN` from the IP2Location [website](https://lite.ip2location.com/).
+Building the extension is unnecessary if you install it from the [Chrome Web Store](https://chrome.google.com/webstore/detail/geoip-scavenger-hunt/mkfnhhpghjndoehnekjjjjibdjojclne), but it is a straightforward process nonetheless. The only caveat is the GeoIP database needs to be manually downloaded and placed in the `database` folder. This extension requires `IP2LOCATION-LITE-DB5.IPV6.BIN` from the IP2Location [website](https://lite.ip2location.com/).
 After this, the following commands will install all dependencies and build the extension:
 ```
 npm i
